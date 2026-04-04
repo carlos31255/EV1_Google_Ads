@@ -1,15 +1,15 @@
-"""
-Data Transformers Module.
-Applies cleaning and transformation steps to the raw Google Ads dataset.
+# Módulo de Transformaciones de Datos.
 
-Objectives implemented here:
-    C. Numeric Type Transformation  — clean monetary columns (Cost, Sale_Amount)
-    D. Intelligent Missing Value Imputation — business logic + median pipeline
-
-Objectives handled by teammate:
-    A. Date Standardization          — Ad_Date column
-    B. Text Cleaning / Fuzzy Matching — Campaign_Name, Location columns
-"""
+#
+# Objetivos implementados aquí:
+#   A. Estandarización de Fechas          — columna Ad_Date     
+#   B. Limpieza de Texto / Fuzzy Matching — columnas Campaign_Name, Location
+#   C. Transformación de Tipos Numéricos  — limpieza de columnas monetarias (Cost, Sale_Amount)
+#   D. Imputación Inteligente de Valores Faltantes — lógica de negocio + pipeline de mediana
+#
+# Objetivos del compañero: (ordenar luego de finalizar el proyecto)
+#   A. Estandarización de Fechas          — columna Ad_Date     
+#   B. Limpieza de Texto / Fuzzy Matching — columnas Campaign_Name, Location
 
 import logging
 import pandas as pd
@@ -20,44 +20,28 @@ from sklearn.pipeline import Pipeline
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 
 
-# ──────────────────────────────────────────────────────────────────────────────
-# C. NUMERIC TYPE TRANSFORMATION
-# ──────────────────────────────────────────────────────────────────────────────
+# C. TRANSFORMACIÓN DE TIPOS NUMÉRICOS
 
+# Esta funcion elimina el símbolo '$' y las comas de una columna de texto monetario y la convierte a tipo float.
 def clean_monetary_column(series: pd.Series) -> pd.Series:
-    """
-    Strips the '$' symbol and commas from a monetary text column
-    and converts it to float.
-
-    Example: '$1,234.56' -> 1234.56
-    """
+    # Ejemplo: '$1,234.56' -> 1234.56
     return (
         series
         .astype(str)
         .str.replace(r'[$,]', '', regex=True)
         .str.strip()
-        .replace('', np.nan)        # empty strings -> NaN instead of error
+        .replace('', np.nan)        # strings vacíos -> NaN en lugar de error
         .astype(float)
     )
 
-
+# Esta funcion aplica clean_monetary_column a una o más columnas del DataFrame.
 def transform_monetary_columns(df: pd.DataFrame,
                                 columns: list = None) -> pd.DataFrame:
-    """
-    Applies clean_monetary_column to one or more columns in the DataFrame.
-
-    Parameters
-    ----------
-    df      : Input DataFrame.
-    columns : List of column names to clean. Defaults to ['Cost', 'Sale_Amount'].
-
-    Returns
-    -------
-    DataFrame with cleaned numeric columns (copy, original unchanged).
-    """
+    # Aplica clean_monetary_column a una o más columnas del DataFrame.
+    
     if columns is None:
         columns = ['Cost', 'Sale_Amount']
-
+    # Copia el DataFrame para no modificar el original
     df = df.copy()
     for col in columns:
         if col in df.columns:
@@ -66,48 +50,31 @@ def transform_monetary_columns(df: pd.DataFrame,
             after_nulls = df[col].isna().sum()
             new_nulls = after_nulls - before_nulls
             logging.info(
-                f"[C] '{col}' converted to float. "
-                f"New NaNs introduced (empty/invalid values): {new_nulls}"
+                f"[C] '{col}' convertida a float. "
+                f"Nuevos NaN introducidos (valores vacíos/inválidos): {new_nulls}"
             )
         else:
-            logging.warning(f"[C] Column '{col}' not found in DataFrame. Skipping.")
+            logging.warning(f"[C] Columna '{col}' no encontrada en el DataFrame. Se omite.")
 
     return df
 
 
-# ──────────────────────────────────────────────────────────────────────────────
-# D. INTELLIGENT MISSING VALUE IMPUTATION
-# ──────────────────────────────────────────────────────────────────────────────
+# D. IMPUTACIÓN INTELIGENTE DE VALORES FALTANTES
 
+# Esta funcion recalcula los valores faltantes de Conversion_Rate usando lógica de negocio:
+# Conversion_Rate = Conversions / Clicks
 def impute_conversion_rate(df: pd.DataFrame,
                             rate_col: str = 'Conversion_Rate',
                             conversions_col: str = 'Conversions',
                             clicks_col: str = 'Clicks') -> pd.DataFrame:
-    """
-    Recalculates missing Conversion_Rate values using business logic:
-        Conversion_Rate = Conversions / Clicks
 
-    Only fills rows where Conversion_Rate is NaN AND both Conversions
-    and Clicks are available and Clicks > 0.
-
-    Parameters
-    ----------
-    df              : Input DataFrame.
-    rate_col        : Name of the Conversion Rate column.
-    conversions_col : Name of the Conversions column.
-    clicks_col      : Name of the Clicks column.
-
-    Returns
-    -------
-    DataFrame with business-logic-imputed Conversion_Rate (copy).
-    """
     df = df.copy()
-
+    # Verificamos que la columna Conversion_Rate exista en el DataFrame
     if rate_col not in df.columns:
-        logging.warning(f"[D] Column '{rate_col}' not found. Skipping business imputation.")
+        logging.warning(f"[D] Columna '{rate_col}' no encontrada. Se omite la imputación por negocio.")
         return df
 
-    # Identify rows where we CAN calculate the rate
+    # Identificamos las filas donde SÍ podemos calcular la tasa
     missing_mask = df[rate_col].isna()
     can_calculate = (
         missing_mask
@@ -115,68 +82,69 @@ def impute_conversion_rate(df: pd.DataFrame,
         & df[clicks_col].notna()
         & (df[clicks_col] > 0)
     )
-
+    # Contamos cuántos valores se pueden recalcular
     recalculated = can_calculate.sum()
+    # Recalculamos los valores faltantes
     df.loc[can_calculate, rate_col] = (
         df.loc[can_calculate, conversions_col] / df.loc[can_calculate, clicks_col]
     )
-
+    # Contamos cuántos valores quedan faltantes
     still_missing = df[rate_col].isna().sum()
+    # Mostramos los resultados
     logging.info(
-        f"[D] '{rate_col}': {recalculated} values recalculated via business logic. "
-        f"Remaining NaNs: {still_missing}"
+        f"[D] '{rate_col}': {recalculated} valores recalculados por lógica de negocio. "
+        f"NaN restantes: {still_missing}"
     )
     return df
+    
 
 
 def build_median_imputation_pipeline(numeric_columns: list) -> Pipeline:
-    """
-    Builds a scikit-learn Pipeline with a median SimpleImputer
-    for the specified numeric columns.
+    # Construye un Pipeline de scikit-learn con SimpleImputer de mediana
+    # para las columnas numéricas especificadas.
+    #
+    # Uso
+    # ---
+    # pipeline = build_median_imputation_pipeline(['Cost', 'CTR', 'Conversion_Rate'])
+    # imputed_array = pipeline.fit_transform(df[numeric_columns])
+    #
+    # Retorna
+    # -------
+    # Pipeline de sklearn listo para fit/transform.
 
-    Usage
-    -----
-    pipeline = build_median_imputation_pipeline(['Cost', 'CTR', 'Conversion_Rate'])
-    imputed_array = pipeline.fit_transform(df[numeric_columns])
-
-    Returns
-    -------
-    sklearn Pipeline ready to fit/transform.
-    """
     pipeline = Pipeline(steps=[
-        ('median_imputer', SimpleImputer(strategy='median'))
+        ('imputer_mediana', SimpleImputer(strategy='median'))
     ])
     logging.info(
-        f"[D] Median imputation pipeline created for columns: {numeric_columns}"
+        f"[D] Pipeline de imputación por mediana creado para columnas: {numeric_columns}"
     )
     return pipeline
 
 
 def impute_remaining_numeric(df: pd.DataFrame,
                               columns: list = None) -> pd.DataFrame:
-    """
-    Applies median imputation (via sklearn Pipeline) to any remaining
-    NaN values in the specified numeric columns.
+    # Aplica imputación por mediana (vía Pipeline de sklearn) a los NaN
+    # restantes en las columnas numéricas especificadas.
+    #
+    # Parámetros
+    # ----------
+    # df      : DataFrame de entrada (ya con imputación por lógica de negocio aplicada).
+    # columns : Columnas numéricas a imputar. Por defecto: todas las columnas numéricas.
+    #
+    # Retorna
+    # -------
+    # DataFrame con valores imputados por mediana (copia).
 
-    Parameters
-    ----------
-    df      : Input DataFrame (should already have business-logic imputation applied).
-    columns : Numeric columns to impute. Defaults to all numeric columns.
-
-    Returns
-    -------
-    DataFrame with median-imputed values (copy).
-    """
     df = df.copy()
 
     if columns is None:
         columns = df.select_dtypes(include=[np.number]).columns.tolist()
 
-    # Only process columns that actually have missing values
+    # Solo procesamos columnas que realmente tienen valores faltantes
     cols_with_nulls = [c for c in columns if c in df.columns and df[c].isna().any()]
 
     if not cols_with_nulls:
-        logging.info("[D] No remaining NaNs found in numeric columns. Nothing to impute.")
+        logging.info("[D] No se encontraron NaN restantes en columnas numéricas. Nada que imputar.")
         return df
 
     pipeline = build_median_imputation_pipeline(cols_with_nulls)
@@ -184,7 +152,7 @@ def impute_remaining_numeric(df: pd.DataFrame,
     df[cols_with_nulls] = imputed_values
 
     logging.info(
-        f"[D] Median imputation applied to {len(cols_with_nulls)} column(s): "
+        f"[D] Imputación por mediana aplicada a {len(cols_with_nulls)} columna(s): "
         f"{cols_with_nulls}"
     )
     return df
@@ -195,37 +163,36 @@ def apply_full_imputation(df: pd.DataFrame,
                            conversions_col: str = 'Conversions',
                            clicks_col: str = 'Clicks',
                            numeric_columns: list = None) -> pd.DataFrame:
-    """
-    Full imputation pipeline (Steps D1 + D2):
-        1. Business-logic recalculation for Conversion_Rate.
-        2. Median imputation for any remaining NaN numeric values.
+    # Pipeline completo de imputación (Pasos D1 + D2):
+    #   1. Recálculo por lógica de negocio para Conversion_Rate.
+    #   2. Imputación por mediana para los NaN numéricos restantes.
+    #
+    # Parámetros
+    # ----------
+    # df              : DataFrame crudo o parcialmente limpiado.
+    # rate_col        : Nombre de la columna Conversion Rate.
+    # conversions_col : Nombre de la columna Conversions.
+    # clicks_col      : Nombre de la columna Clicks.
+    # numeric_columns : Columnas sobre las que aplicar imputación por mediana.
+    #                   Si es None, se usan todas las columnas numéricas.
+    #
+    # Retorna
+    # -------
+    # DataFrame completamente imputado (copia).
 
-    Parameters
-    ----------
-    df              : Raw or partially cleaned DataFrame.
-    rate_col        : Conversion Rate column name.
-    conversions_col : Conversions column name.
-    clicks_col      : Clicks column name.
-    numeric_columns : Columns to apply median imputation to.
-                      If None, all numeric columns are used.
-
-    Returns
-    -------
-    Fully imputed DataFrame (copy).
-    """
-    logging.info("[D] Starting full imputation pipeline...")
+    logging.info("[D] Iniciando pipeline completo de imputación...")
     df = impute_conversion_rate(df, rate_col, conversions_col, clicks_col)
     df = impute_remaining_numeric(df, numeric_columns)
-    logging.info("[D] Full imputation pipeline complete.")
+    logging.info("[D] Pipeline completo de imputación finalizado.")
     return df
 
 
 # ──────────────────────────────────────────────────────────────────────────────
-# QUICK TEST
+# PRUEBA RÁPIDA
 # ──────────────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    # Minimal synthetic sample to verify both transformers locally
+    # Muestra sintética mínima para verificar ambos transformadores localmente
     sample = pd.DataFrame({
         'Cost':            ['$1,200.50', '$800.00', None,       '$450.75'],
         'Sale_Amount':     ['$3,000.00', None,       '$1,500.00', '$2,200.00'],
@@ -235,14 +202,14 @@ if __name__ == "__main__":
         'CTR':             [0.04,         None,       0.06,        0.03],
     })
 
-    print("=== Before ===")
+    print("=== Antes ===")
     print(sample, "\n")
 
-    # C — Monetary columns
+    # C — Columnas monetarias
     sample = transform_monetary_columns(sample, columns=['Cost', 'Sale_Amount'])
 
-    # D — Imputation
+    # D — Imputación
     sample = apply_full_imputation(sample)
 
-    print("=== After ===")
+    print("=== Después ===")
     print(sample)
