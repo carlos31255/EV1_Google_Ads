@@ -96,61 +96,47 @@ def impute_conversion_rate(df: pd.DataFrame,
         f"NaN restantes: {still_missing}"
     )
     return df
-    
 
-
+# Esta función construye un Pipeline de scikit-learn con SimpleImputer de mediana
+# para imputar los NaN restantes en las columnas numéricas especificadas.
 def build_median_imputation_pipeline(numeric_columns: list) -> Pipeline:
-    # Construye un Pipeline de scikit-learn con SimpleImputer de mediana
-    # para las columnas numéricas especificadas.
-    #
-    # Uso
-    # ---
-    # pipeline = build_median_imputation_pipeline(['Cost', 'CTR', 'Conversion_Rate'])
-    # imputed_array = pipeline.fit_transform(df[numeric_columns])
-    #
-    # Retorna
-    # -------
-    # Pipeline de sklearn listo para fit/transform.
 
+    # Creamos el pipeline con un único paso: imputación por mediana
     pipeline = Pipeline(steps=[
         ('imputer_mediana', SimpleImputer(strategy='median'))
     ])
+    # Mostramos las columnas que serán procesadas
     logging.info(
         f"[D] Pipeline de imputación por mediana creado para columnas: {numeric_columns}"
     )
     return pipeline
 
 
+# Esta función aplica imputación por mediana (vía Pipeline de sklearn) a los NaN
+# restantes en las columnas numéricas, luego de haber aplicado la lógica de negocio.
 def impute_remaining_numeric(df: pd.DataFrame,
                               columns: list = None) -> pd.DataFrame:
-    # Aplica imputación por mediana (vía Pipeline de sklearn) a los NaN
-    # restantes en las columnas numéricas especificadas.
-    #
-    # Parámetros
-    # ----------
-    # df      : DataFrame de entrada (ya con imputación por lógica de negocio aplicada).
-    # columns : Columnas numéricas a imputar. Por defecto: todas las columnas numéricas.
-    #
-    # Retorna
-    # -------
-    # DataFrame con valores imputados por mediana (copia).
 
     df = df.copy()
 
+    # Si no se especifican columnas, usamos todas las numéricas del DataFrame
     if columns is None:
         columns = df.select_dtypes(include=[np.number]).columns.tolist()
 
-    # Solo procesamos columnas que realmente tienen valores faltantes
+    # Filtramos solo las columnas que realmente tienen valores faltantes
     cols_with_nulls = [c for c in columns if c in df.columns and df[c].isna().any()]
 
+    # Si no hay NaN, no hay nada que hacer
     if not cols_with_nulls:
         logging.info("[D] No se encontraron NaN restantes en columnas numéricas. Nada que imputar.")
         return df
 
+    # Construimos el pipeline y aplicamos la imputación
     pipeline = build_median_imputation_pipeline(cols_with_nulls)
     imputed_values = pipeline.fit_transform(df[cols_with_nulls])
     df[cols_with_nulls] = imputed_values
 
+    # Mostramos cuántas columnas fueron procesadas
     logging.info(
         f"[D] Imputación por mediana aplicada a {len(cols_with_nulls)} columna(s): "
         f"{cols_with_nulls}"
@@ -158,31 +144,22 @@ def impute_remaining_numeric(df: pd.DataFrame,
     return df
 
 
+# Esta función ejecuta el pipeline completo de imputación en dos pasos:
+#   Paso 1: Recalcula Conversion_Rate donde sea posible usando lógica de negocio.
+#   Paso 2: Imputa los NaN numéricos restantes usando la mediana.
 def apply_full_imputation(df: pd.DataFrame,
                            rate_col: str = 'Conversion_Rate',
                            conversions_col: str = 'Conversions',
                            clicks_col: str = 'Clicks',
                            numeric_columns: list = None) -> pd.DataFrame:
-    # Pipeline completo de imputación (Pasos D1 + D2):
-    #   1. Recálculo por lógica de negocio para Conversion_Rate.
-    #   2. Imputación por mediana para los NaN numéricos restantes.
-    #
-    # Parámetros
-    # ----------
-    # df              : DataFrame crudo o parcialmente limpiado.
-    # rate_col        : Nombre de la columna Conversion Rate.
-    # conversions_col : Nombre de la columna Conversions.
-    # clicks_col      : Nombre de la columna Clicks.
-    # numeric_columns : Columnas sobre las que aplicar imputación por mediana.
-    #                   Si es None, se usan todas las columnas numéricas.
-    #
-    # Retorna
-    # -------
-    # DataFrame completamente imputado (copia).
 
+    # Iniciamos el pipeline completo
     logging.info("[D] Iniciando pipeline completo de imputación...")
+    # Paso 1: imputación por lógica de negocio
     df = impute_conversion_rate(df, rate_col, conversions_col, clicks_col)
+    # Paso 2: imputación por mediana para los NaN restantes
     df = impute_remaining_numeric(df, numeric_columns)
+    # Fin del pipeline
     logging.info("[D] Pipeline completo de imputación finalizado.")
     return df
 
