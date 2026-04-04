@@ -1,0 +1,16 @@
+# Datos
+data/raw/*.csv
+data/processed/*.csv
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+env/
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+
+# Sistema
+.DS_Store
