@@ -164,9 +164,7 @@ def apply_full_imputation(df: pd.DataFrame,
     return df
 
 
-# ──────────────────────────────────────────────────────────────────────────────
 # PRUEBA RÁPIDA
-# ──────────────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
     # Muestra sintética mínima para verificar ambos transformadores localmente
