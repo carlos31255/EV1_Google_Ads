@@ -87,9 +87,12 @@ def verify_data_integrity(file_path: str, metadata_path: str) -> bool:
         return False
 
 if __name__ == "__main__":
-    # Rutas de prueba para ejecutar el script localmente
-    dataset_path = "data/raw/GoogleAds_DataAnalytics_Sales_Uncleaned.csv"
-    metadata_path = "data/raw/metadata.json"
+    # Obtenemos la ruta base del proyecto (un nivel arriba de /src)
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    
+    # Rutas de prueba usando rutas absolutas
+    dataset_path = os.path.join(base_dir, "data", "raw", "GoogleAds_DataAnalytics_Sales_Uncleaned.csv")
+    metadata_path = os.path.join(base_dir, "data", "raw", "metadata.json")
     
     # Si es la primera vez y no hay JSON, lo creamos
     if not os.path.exists(metadata_path):

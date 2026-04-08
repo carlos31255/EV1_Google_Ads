@@ -30,8 +30,8 @@ google_ads_analytics/
 
 2. Crea un entorno virtual e instala las dependencias:
    ```bash
-   python -m venv .venv
-   .venv\Scripts\activate       # Windows
+   python -m venv google_ads
+   google_ads\Scripts\activate       # Windows
    pip install -r requirements.txt
    ```
 
