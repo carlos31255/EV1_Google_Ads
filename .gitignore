@@ -1,7 +1,3 @@
-# Datos
-data/raw/*.csv
-data/processed/*.csv
-
 # Python
 __pycache__/
 *.py[cod]
@@ -14,3 +10,6 @@ env/
 
 # Sistema
 .DS_Store
+
+# Datos procesados
+data/processed/*.png

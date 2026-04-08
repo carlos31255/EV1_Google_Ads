@@ -56,8 +56,6 @@ google_ads_analytics/
 - **Archivo original:** `data/raw/GoogleAds_DataAnalytics_Sales_Uncleaned.csv`
 - **Descripción:** Datos de rendimiento de anuncios incluyendo impresiones, clics, conversiones, costos y métricas de ventas.
 
-> Los archivos CSV no se incluyen en el repositorio (ver `.gitignore`). Descarga el dataset desde Kaggle y colócalo en `data/raw/`.
-
 ## Módulos (`src/`)
 
 - **`audit.py`** — Funciones para auditar la calidad del dataset: valores nulos, duplicados, tipos de datos, etc.
