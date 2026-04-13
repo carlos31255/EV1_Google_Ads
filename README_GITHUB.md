@@ -12,8 +12,8 @@ cd google_ads_analytics
 
 **2. Crear y activar el entorno virtual**
 ```bash
-python -m venv .venv
-.venv\Scripts\activate
+python -m venv google_ads
+google_ads\Scripts\activate
 ```
 
 **3. Instalar dependencias**
@@ -91,5 +91,5 @@ git commit -m "docs: actualizar README con nuevas instrucciones"
 El archivo `.gitignore` excluye automaticamente:
 
 - `data/raw/*.csv` y `data/processed/*.csv` — el dataset no se sube, se descarga desde Kaggle
-- `.venv/` — el entorno virtual se crea localmente con `pip install -r requirements.txt`
+- `google_ads/` — el entorno virtual se crea localmente con `pip install -r requirements.txt`
 - `__pycache__/`, `.ipynb_checkpoints/` — archivos temporales de Python y Jupyter
