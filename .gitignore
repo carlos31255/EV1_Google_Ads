@@ -14,3 +14,6 @@ google_ads/
 
 # Datos procesados
 data/processed/*.png
+
+# Visualizaciones generadas
+outputs/*.png

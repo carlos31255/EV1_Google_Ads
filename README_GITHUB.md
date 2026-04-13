@@ -93,3 +93,4 @@ El archivo `.gitignore` excluye automaticamente:
 - `data/raw/*.csv` y `data/processed/*.csv` — el dataset no se sube, se descarga desde Kaggle
 - `google_ads/` — el entorno virtual se crea localmente con `pip install -r requirements.txt`
 - `__pycache__/`, `.ipynb_checkpoints/` — archivos temporales de Python y Jupyter
+- `outputs/*.png` — las visualizaciones se regeneran ejecutando el notebook `01_EDA_ML_GoogleAds.ipynb`

@@ -1,6 +1,6 @@
 # Google Ads Analytics
 
-Análisis exploratorio y limpieza de datos de campañas publicitarias de Google Ads, orientado a identificar patrones de rendimiento, eficiencia del gasto y oportunidades de optimización.
+Análisis exploratorio, limpieza y preprocesamiento de datos de campañas publicitarias de Google Ads, orientado a identificar patrones de rendimiento, eficiencia del gasto y oportunidades de optimización. Incluye un pipeline de ML automatizado para predecir rentabilidad de campañas (`Is_Profitable`).
 
 ## Estructura del proyecto
 
@@ -9,12 +9,18 @@ google_ads_analytics/
 ├── data/
 │   ├── raw/               # Dataset original sin modificar
 │   └── processed/         # Datos limpios y transformados
-├── notebooks/             # Análisis exploratorio (Jupyter Notebooks)
+├── notebooks/             # Análisis exploratorio y construcción del pipeline
+│   ├── 01_EDA_ML_GoogleAds.ipynb
+│   └── 02_Pipelines.ipynb
 ├── src/
 │   ├── __init__.py
-│   ├── audit.py           # Funciones de auditoría y validación de datos
-│   └── transformers.py    # Transformaciones y limpieza de datos
-├── docs/                  # Documentación adicional
+│   ├── audit.py           # Auditoría e integridad del dataset
+│   ├── transformers.py    # Transformers personalizados de scikit-learn
+│   ├── pipeline.py        # Función build_preprocessing_pipeline()
+│   └── optimization.py    # Optimización de memoria y lectura por chunks
+├── outputs/               # Visualizaciones generadas
+├── docs/                  # Informe técnico y documentación extra
+├── main.py                # Punto de entrada — ejecuta el ETL completo
 ├── .gitignore
 ├── requirements.txt
 └── README.md
@@ -35,10 +41,21 @@ google_ads_analytics/
    pip install -r requirements.txt
    ```
 
-3. Inicia Jupyter:
-   ```bash
-   jupyter notebook
-   ```
+## Ejecución
+
+Para correr el pipeline completo de ETL y preprocesamiento de forma automática:
+
+```bash
+python main.py
+```
+
+Esto ejecuta en orden:
+1. Carga del dataset crudo
+2. Auditoría e integridad del archivo
+3. Optimización de memoria
+4. Creación de la variable objetivo `Is_Profitable`
+5. Pipeline de preprocesamiento (limpieza + imputación + encoding + escalado)
+6. Guardado del dataset procesado en `data/processed/`
 
 ## Dependencias principales
 
@@ -46,9 +63,9 @@ google_ads_analytics/
 |---|---|
 | `pandas` | Manipulación y análisis de datos |
 | `numpy` | Operaciones numéricas |
-| `scikit-learn` | Modelado y métricas |
+| `scikit-learn` | Pipeline, transformers y modelado |
 | `matplotlib` / `seaborn` | Visualización |
-| `jupyter` | Entorno de notebooks |
+| `jupyter` | Exploración en notebooks |
 
 ## Dataset
 
@@ -58,6 +75,7 @@ google_ads_analytics/
 
 ## Módulos (`src/`)
 
-- **`audit.py`** — Funciones para auditar la calidad del dataset: valores nulos, duplicados, tipos de datos, etc.
-- **`transformers.py`** — Transformaciones de datos: normalización, codificación, ingeniería de features.
-
+- **`audit.py`** — Verificación de integridad del dataset: checksum, metadata y validación.
+- **`transformers.py`** — Transformers personalizados compatibles con `sklearn.Pipeline`: limpieza monetaria, imputación inteligente, capping de outliers, etc.
+- **`pipeline.py`** — Función `build_preprocessing_pipeline()` que ensambla el pipeline completo reutilizable.
+- **`optimization.py`** — Reducción del footprint en memoria y lectura de archivos grandes por chunks.

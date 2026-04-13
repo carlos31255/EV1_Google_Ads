@@ -9,7 +9,6 @@
 # make_column_selector, por lo que el pipeline se adapta si el dataset cambia.
 
 
-import pandas as pd
 from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer, make_column_selector
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
