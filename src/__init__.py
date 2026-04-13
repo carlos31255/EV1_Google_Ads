@@ -1,4 +1,4 @@
-# Paquete src — expone las funciones públicas de audit, transformers y optimization
+# Paquete src — expone las funciones públicas de audit, transformers, optimization y pipeline
 from .audit import (
     generate_checksum,
     get_file_metadata,
@@ -18,4 +18,8 @@ from .transformers import (
 from .optimization import (
     optimize_memory,
     read_csv_in_chunks,
+)
+
+from .pipeline import (
+    build_preprocessing_pipeline,
 )
