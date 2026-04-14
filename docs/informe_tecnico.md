@@ -333,6 +333,7 @@ La ejecución de `python main.py` produce la siguiente salida verificada:
 - **Columnas monetarias como strings:** `Cost` y `Sale_Amount` almacenadas con símbolo `$` impidieron su uso aritmético directo; fue necesario un transformer dedicado antes de crear el target.
 - **Encoding Windows y UTF-8:** La terminal de Windows (cp1252) no soporta emojis por defecto, requiriendo `sys.stdout.reconfigure(encoding='utf-8')` en `main.py`.
 - **Desbalance de clases no anticipado:** La distribución 91%/9% de `Is_Profitable` no era evidente antes del análisis exploratorio.
+- **Creación de la variable objetivo vs Tratamiento de Outliers:** El uso prematuro de recortes intercuartílicos (IQR) sobre variables monetarias alteraba la relación matemática real entre costos y ventas, forzando falsamente una ganancia del 100%. Se corrigió calculando `Is_Profitable` estrictamente sobre los datos crudos antes de cualquier imputación o tratamiento de atípicos.
 
 ### 5.3 Recomendaciones
 
@@ -361,7 +362,7 @@ google_ads_analytics/
 │   ├── transformers.py                # 8 transformers sklearn personalizados
 │   ├── pipeline.py                    # Función build_preprocessing_pipeline()
 │   └── optimization.py               # Optimización de memoria y chunks
-├── outputs/                           # Visualizaciones generadas (19 archivos .png)
+├── outputs/                           # Visualizaciones generadas (4 archivos .png)
 ├── docs/
 │   └── informe_tecnico.md             # Este documento
 ├── main.py                            # Punto de entrada — python main.py
