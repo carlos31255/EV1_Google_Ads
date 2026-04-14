@@ -7,6 +7,8 @@ from .audit import (
 )
 
 from .transformers import (
+    DateStandardizerTransformer,
+    TextNormalizerTransformer,
     DropColumnsTransformer,
     MonetaryCleanerTransformer,
     DropHighMissingTransformer,

@@ -2,9 +2,8 @@
 
 # Objetivos implementados aquí:
 #   A. build_preprocessing_pipeline() — construye y retorna el pipeline completo
-#                                       listo para fit_transform() o para integrarse
-#                                       con un modelo en un pipeline final de ML.
-
+#                                       integrando todos los transformers de src/transformers.py
+#
 # Las columnas numéricas y categóricas se detectan dinámicamente con
 # make_column_selector, por lo que el pipeline se adapta si el dataset cambia.
 
@@ -14,6 +13,8 @@ from sklearn.compose import ColumnTransformer, make_column_selector
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
 
 from src.transformers import (
+    DateStandardizerTransformer,
+    TextNormalizerTransformer,
     DropColumnsTransformer,
     MonetaryCleanerTransformer,
     DropHighMissingTransformer,
@@ -29,6 +30,20 @@ from src.transformers import (
 # adaptado al dataset de Google Ads. Detecta automáticamente qué columnas son
 # numéricas y cuáles son categóricas después de los pasos de limpieza previos.
 def build_preprocessing_pipeline(columns_to_drop=None):
+    """
+    Construye y retorna el pipeline completo de preprocesamiento para el dataset de Google Ads.
+
+    Parámetros
+    ----------
+    columns_to_drop : list, opcional
+        Columnas a eliminar antes del preprocesamiento. Por defecto elimina las columnas
+        de leakage: ['Ad_ID', 'Ad_Date', 'Cost', 'Sale_Amount'].
+
+    Retorna
+    -------
+    sklearn.pipeline.Pipeline
+        Pipeline listo para aplicar fit_transform() sobre los datos crudos.
+    """
 
     # Si no se especifican columnas a eliminar, usamos las del dataset de Google Ads
     # que causan Data Leakage directo (fuente del target Is_Profitable)
@@ -58,16 +73,20 @@ def build_preprocessing_pipeline(columns_to_drop=None):
 
     # 4. El Súper Pipeline completo
     full_pipeline = Pipeline([
+        # Paso A — Estandarizar fechas y extraer features temporales (mes, día semana, fin de semana)
+        ('date_standardizer', DateStandardizerTransformer()),
+        # Paso B — Normalizar capitalización y resolver typos en columnas de texto
+        ('text_normalizer',   TextNormalizerTransformer()),
         # Eliminar columnas que generan Data Leakage
-        ('drop_leaks',       DropColumnsTransformer(columns_to_drop=columns_to_drop)),
+        ('drop_leaks',        DropColumnsTransformer(columns_to_drop=columns_to_drop)),
         # Convertir columnas monetarias '$X,XXX.XX' a float
-        ('monetary_clean',   MonetaryCleanerTransformer(columns=['Cost', 'Sale_Amount'])),
+        ('monetary_clean',    MonetaryCleanerTransformer(columns=['Cost', 'Sale_Amount'])),
         # Eliminar columnas con > 80% de nulos
-        ('drop_high_nan',    DropHighMissingTransformer(threshold=0.80)),
+        ('drop_high_nan',     DropHighMissingTransformer(threshold=0.80)),
         # Imputación inteligente según porcentaje de nulos
-        ('smart_imputer',    SmartImputerTransformer(low_threshold=0.10)),
+        ('smart_imputer',     SmartImputerTransformer(low_threshold=0.10)),
         # Preprocesamiento numérico y categórico
-        ('preprocessing',    preprocessor),
+        ('preprocessing',     preprocessor),
     ])
 
     return full_pipeline

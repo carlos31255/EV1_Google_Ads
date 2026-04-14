@@ -19,6 +19,10 @@ from src.transformers import MonetaryCleanerTransformer
 
 
 def main():
+    """
+    Orquesta el pipeline completo de ETL: auditoría, carga, optimización, creación
+    de la variable objetivo, preprocesamiento y guardado del dataset procesado.
+    """
     print("--- Iniciando Pipeline de Datos ---\n")
 
     try:

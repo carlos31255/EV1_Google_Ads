@@ -17,3 +17,6 @@ data/processed/*.png
 
 # Visualizaciones generadas
 outputs/*.png
+
+# Documentos locales (no se suben)
+docs/presentacion_resumen.md

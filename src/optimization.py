@@ -16,6 +16,19 @@ import numpy as np
 # de los tipos numéricos al mínimo necesario para representar sus valores.
 # Ejemplo: una columna int64 que solo tiene valores 0-100 pasa a int8 (8x menos memoria).
 def optimize_memory(df):
+    """
+    Reduce el uso de memoria de un DataFrame bajando la precisión de los tipos numéricos.
+
+    Parámetros
+    ----------
+    df : pd.DataFrame
+        DataFrame de entrada a optimizar.
+
+    Retorna
+    -------
+    pd.DataFrame
+        DataFrame con tipos numéricos reducidos. Retorna el df original si ocurre un error crítico.
+    """
 
     try:
         original_mem = df.memory_usage(deep=True).sum() / 1024**2
@@ -67,6 +80,23 @@ def optimize_memory(df):
 # agotar la memoria RAM. Aplica optimize_memory a cada chunk antes de unirlos.
 # Ejemplo: un archivo de 2 GB puede procesarse en chunks de 10,000 filas.
 def read_csv_in_chunks(filepath, chunksize=10_000, sep=','):
+    """
+    Lee un archivo CSV grande en fragmentos, aplicando optimización de memoria a cada uno.
+
+    Parámetros
+    ----------
+    filepath : str
+        Ruta al archivo CSV.
+    chunksize : int
+        Número de filas por fragmento. Por defecto 10,000.
+    sep : str
+        Separador de columnas. Por defecto ','.
+
+    Retorna
+    -------
+    pd.DataFrame o None
+        DataFrame concatenado y optimizado, o None si ocurre un error crítico.
+    """
 
     chunks = []
 
