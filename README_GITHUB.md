@@ -6,8 +6,8 @@ Este archivo explica cómo clonar el proyecto, trabajar localmente y subir cambi
 
 **1. Clonar el repositorio**
 ```bash
-git clone https://github.com/carlos31255/google_ads_analytics.git
-cd google_ads_analytics
+git clone https://github.com/carlos31255/EV1_Google_Ads
+cd EV1_Google_Ads
 ```
 
 **2. Crear y activar el entorno virtual**

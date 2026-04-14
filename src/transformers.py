@@ -125,9 +125,11 @@ class MonetaryCleanerTransformer(BaseEstimator, TransformerMixin):
         self.columns = columns if columns is not None else ['Cost', 'Sale_Amount']
 
     def fit(self, X, y=None):
+        """No requiere aprendizaje. Retorna self."""
         return self
 
     def transform(self, X):
+        """Limpia símbolos monetarios y convierte columnas objetivo a float."""
         X_copy = X.copy()
         for col in self.columns:
             if col in X_copy.columns:
@@ -154,9 +156,11 @@ class DropColumnsTransformer(BaseEstimator, TransformerMixin):
         self.columns_to_drop = columns_to_drop
 
     def fit(self, X, y=None):
+        """No requiere aprendizaje. Retorna self."""
         return self
 
     def transform(self, X):
+        """Elimina de forma segura solo las columnas presentes en el DataFrame."""
         X_copy = X.copy()
         # Solo elimina si la columna realmente existe en el dataset
         cols = [col for col in self.columns_to_drop if col in X_copy.columns]
@@ -183,6 +187,7 @@ class DropHighMissingTransformer(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, X):
+        """Elimina las columnas detectadas en `fit` que exceden el umbral de nulos."""
         X_copy = X.copy()
         cols = [c for c in self.cols_to_drop_ if c in X_copy.columns]
         return X_copy.drop(columns=cols)
@@ -200,6 +205,7 @@ class OutlierCapper(BaseEstimator, TransformerMixin):
         self.bounds_ = {}
 
     def fit(self, X, y=None):
+        """Aprende límites IQR por columna numérica cuando `apply_capping=True`."""
         if not self.apply_capping:
             return self  # Si está apagado, no aprende nada y pasa de largo
         # Calcula y guarda los límites inferior y superior para cada columna numérica
@@ -211,6 +217,7 @@ class OutlierCapper(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, X):
+        """Recorta valores fuera de límites IQR previamente aprendidos."""
         X_copy = X.copy()
         if not self.apply_capping:
             return X_copy  # Si está apagado, devuelve los datos intactos
@@ -221,6 +228,7 @@ class OutlierCapper(BaseEstimator, TransformerMixin):
         return X_copy
 
     def get_feature_names_out(self, input_features=None):
+        """Retorna nombres de salida sin cambios de estructura."""
         return input_features
 
 
@@ -241,11 +249,13 @@ class DropZeroVarianceTransformer(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, X):
+        """Elimina columnas numéricas constantes detectadas en `fit`."""
         X_copy = X.copy()
         cols = [c for c in self.cols_to_drop_ if c in X_copy.columns]
         return X_copy.drop(columns=cols)
 
     def get_feature_names_out(self, input_features=None):
+        """Devuelve nombres de columnas excluyendo las de varianza cero."""
         if input_features is None:
             return None
         # Devuelve solo las columnas que NO fueron eliminadas
@@ -267,6 +277,7 @@ class SmartImputerTransformer(BaseEstimator, TransformerMixin):
         self.cols_complejas_ = []
 
     def fit(self, X, y=None):
+        """Clasifica columnas para imputación simple o compleja según su % de nulos."""
         porcentaje_nulos = X.isnull().mean()
         self.cols_simples_ = []
         self.cols_complejas_ = []
@@ -283,6 +294,7 @@ class SmartImputerTransformer(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, X):
+        """Imputa nulos con mediana/moda siguiendo la clasificación aprendida en `fit`."""
         X_copy = X.copy()
 
         # 1. Imputación Simple (< 10% nulos)
@@ -306,4 +318,5 @@ class SmartImputerTransformer(BaseEstimator, TransformerMixin):
         return X_copy
 
     def get_feature_names_out(self, input_features=None):
+        """Retorna nombres de salida sin alteración de orden o cantidad."""
         return input_features

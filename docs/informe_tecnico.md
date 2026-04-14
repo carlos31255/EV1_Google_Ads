@@ -18,9 +18,13 @@ El presente informe documenta el proceso completo de análisis exploratorio de d
 
 Se definió la variable binaria `Is_Profitable` mediante lógica de negocio directa:
 
-> **Is_Profitable = 1** si `Sale_Amount > Cost`, **0** en caso contrario.
+> **Profit_Margin = (Sale_Amount - Cost) / Cost**
+>
+> **Is_Profitable = 1** si `Profit_Margin >= tau`, **0** en caso contrario.
+>
+> Para este dataset se evalúan `tau = {0.1, 0.2, 0.3}` y, si esas opciones generan una clase degenerada, se aplica un `tau` dinámico (cuantil 70 del margen) para mantener una distribución útil de clases.
 
-Esta variable no existía en el dataset original y fue ingeniería propia del proyecto, representando si una campaña publicitaria generó retorno positivo sobre la inversión.
+Esta variable no existía en el dataset original y fue ingeniería propia del proyecto. Además, cuando `Cost` o `Sale_Amount` están nulos en crudo, el target se marca como desconocido y el registro se excluye del set supervisado.
 
 ### Resultados Clave
 
@@ -30,8 +34,9 @@ Esta variable no existía en el dataset original y fue ingeniería propia del pr
 | Columnas originales | 13 |
 | Columnas finales procesadas | 22 features + 1 target |
 | Reducción de memoria | 1.44 MB → 1.38 MB (3.5%) |
-| Campañas rentables (clase 1) | 2,366 (91.0%) |
-| Campañas no rentables (clase 0) | 234 (9.0%) |
+| Filas finales supervisadas | 2,366 (se excluyen 234 targets desconocidos) |
+| Campañas rentables (clase 1) | 710 (30.0%) |
+| Campañas no rentables (clase 0) | 1,656 (70.0%) |
 | Transformers personalizados implementados | 8 clases sklearn |
 
 El pipeline fue automatizado en un script `main.py` ejecutable con un solo comando (`python main.py`), que orquesta auditoría, carga, optimización de memoria, creación del target, preprocesamiento y guardado del dataset procesado.
@@ -119,10 +124,10 @@ La columna `Ad_Date` presentó al menos tres formatos distintos:
 
 | Is_Profitable | Frecuencia | Porcentaje |
 |---|---|---|
-| 1 (Rentable) | 2,366 | 91.0% |
-| 0 (No rentable) | 234 | 9.0% |
+| 1 (Rentable) | 710 | 30.0% |
+| 0 (No rentable) | 1,656 | 70.0% |
 
-> **Nota importante:** El dataset presenta un desbalance de clases significativo (9:1). Esta condición deberá ser considerada en la fase de modelado, donde se recomienda el uso de métricas como F1-score, precisión/recall por clase, y técnicas de rebalanceo como SMOTE o class_weight en el clasificador.
+> **Nota importante:** La distribución final del target se calcula únicamente sobre registros con `Cost` y `Sale_Amount` válidos (2,366 filas). Los 234 registros con target desconocido se excluyen del set supervisado para evitar etiquetas artificiales.
 
 ---
 
@@ -135,6 +140,9 @@ Se diseñó un pipeline secuencial de scikit-learn (`sklearn.Pipeline`) que gara
 ```
 Datos Crudos (2,600 × 13)
       |
+   |-- [Target] Is_Profitable por margen en crudo + seleccion de tau
+   |-- [Target] Exclusión de registros con target desconocido
+   |
       |-- [A] DateStandardizerTransformer   → estandariza fechas + extrae features
       |-- [B] TextNormalizerTransformer      → normaliza texto con fuzzy matching
       |-- [C] DropColumnsTransformer         → elimina columnas de leakage
@@ -145,7 +153,7 @@ Datos Crudos (2,600 × 13)
               |-- num_pipe: [OutlierCapper → DropZeroVariance → StandardScaler]
               |-- cat_pipe: [OneHotEncoder]
       |
-Datos Procesados (2,600 × 22 features)
+Datos Procesados Supervisados (2,366 × 22 features)
 ```
 
 ### 3.2 Transformers Implementados
@@ -177,7 +185,7 @@ Datos Procesados (2,600 × 22 features)
 
 **Técnica empleada:** Remoción del símbolo `$` y comas mediante expresión regular, seguido de conversión a `float`. Los strings vacíos se convierten a `NaN` para preservar la información de ausencia.
 
-**Justificación:** Esta limpieza es necesaria tanto para crear la variable objetivo `Is_Profitable` (comparación Sale_Amount > Cost) como para su eventual uso posterior como features predictoras.
+**Justificación:** Esta limpieza es necesaria para transformar variables monetarias en numéricas dentro del pipeline de features. La variable objetivo se calcula antes, sobre valores monetarios crudos parseados, para preservar la lógica de negocio sin contaminación por imputación o capping.
 
 #### Transformer D — DropColumnsTransformer
 
@@ -188,7 +196,7 @@ Datos Procesados (2,600 × 22 features)
 - `Ad_Date`: reemplazada por las tres features temporales del Transformer A
 - `Cost` y `Sale_Amount`: son la fuente directa de `Is_Profitable` (si el modelo las viera, conocería la respuesta de antemano)
 
-**Justificación:** Incluir `Cost` o `Sale_Amount` como features en un modelo que predice `Is_Profitable = Sale_Amount > Cost` sería fuga de información directa. El modelo aprendería la regla trivialmente y no generalizaría.
+**Justificación:** Incluir `Cost` o `Sale_Amount` como features en un modelo que predice `Is_Profitable` (derivado directamente del margen monetario) sería fuga de información directa. El modelo aprendería la regla de etiquetado y no generalizaría.
 
 #### Transformer E — DropHighMissingTransformer
 
@@ -224,7 +232,9 @@ El orden del pipeline garantiza que:
 1. La normalización de texto (B) ocurre antes de codificar con OneHot
 2. Las fechas se procesan antes de eliminar la columna original
 3. `Cost` y `Sale_Amount` se eliminan antes de que el ColumnTransformer las vea
-4. La creación de `Is_Profitable` ocurre en `main.py` antes de llamar al pipeline, y la columna se separa como `y` antes de pasar `X` al pipeline
+4. La creación de `Is_Profitable` ocurre en `main.py` antes de llamar al pipeline, usando margen en datos crudos
+5. Los registros con target desconocido (`Cost` o `Sale_Amount` nulos) se excluyen del set supervisado antes del `fit_transform`
+6. La columna objetivo se separa como `y` antes de pasar `X` al pipeline
 
 ### 3.4 Módulos de Soporte
 
@@ -245,10 +255,11 @@ Implementa downcasting de tipos numéricos: `int64 → int8/16/32` y `float64 �
 | Etapa | Filas | Columnas |
 |---|---|---|
 | Dataset crudo | 2,600 | 13 |
-| Después de Transformers A+B (nuevas cols de fecha) | 2,600 | 16 |
-| Después de DropColumnsTransformer | 2,600 | 12 |
-| Después de SmartImputer (sin nulos) | 2,600 | 12 |
-| Dataset procesado final (con encoding) | 2,600 | 22 features + 1 target |
+| Después de crear target y excluir desconocidos | 2,366 | 13 + target |
+| Después de Transformers A+B (nuevas cols de fecha) | 2,366 | 16 |
+| Después de DropColumnsTransformer | 2,366 | 12 |
+| Después de SmartImputer (sin nulos) | 2,366 | 12 |
+| Dataset procesado final (con encoding) | 2,366 | 22 features + 1 target |
 
 ### 4.2 Reducción de Nulos
 
@@ -299,7 +310,9 @@ La ejecución de `python main.py` produce la siguiente salida verificada:
    Ahorro total: 3.5%
 
 4. Creando variable objetivo Is_Profitable...
-   Rentable (1): 91.0%  |  No rentable (0): 9.0%
+   Tau seleccionado: 6.9320 (dynamic_fallback)
+   Targets conocidos: 2366  |  Desconocidos excluibles: 234
+   Rentable (1): 30.0%  |  No rentable (0): 70.0%
 
 5. Construyendo y aplicando pipeline de preprocesamiento...
    [SmartImputer] Simples  (<10%): ['Clicks', 'Impressions', 'Leads', 'Conversions']
@@ -307,7 +320,7 @@ La ejecución de `python main.py` produce la siguiente salida verificada:
 
 6. Guardando dataset procesado...
    ✅ Dataset procesado guardado en data/processed/GoogleAds_Processed.csv
-   Dimensiones finales: 2,600 filas x 23 columnas
+   Dimensiones finales (supervisado): 2,366 filas x 23 columnas
 ```
 
 ---
@@ -323,22 +336,22 @@ La ejecución de `python main.py` produce la siguiente salida verificada:
    - **Prevención de leakage:** el escalado y la imputación aprenden exclusivamente de los datos de entrenamiento
    - **Mantenibilidad:** cada transformer puede ser reemplazado o ajustado sin afectar el resto
 
-**3. La variable objetivo `Is_Profitable` no existía en el dataset y fue creada mediante una regla de negocio.** Esta práctica se conoce como *ingeniería de features*: construir nuevas variables a partir de las existentes para representar conceptos útiles para el modelo. En este caso, la regla fue simple y directa: si el monto de venta supera el costo del anuncio (`Sale_Amount > Cost`), la campaña se considera rentable (valor 1); de lo contrario, no rentable (valor 0). No se requirió ninguna fórmula compleja, solo una comparación aritmética entre dos columnas ya disponibles en el dataset.
+**3. La variable objetivo `Is_Profitable` no existía en el dataset y fue creada mediante una regla de negocio robusta.** Se definió a partir del margen de rentabilidad y un umbral `tau`, calculados sobre datos monetarios crudos (antes de imputación/capping). Además, los registros con `Cost` o `Sale_Amount` faltantes se trataron como target desconocido y se excluyeron del set supervisado para evitar etiquetas artificiales.
 
-**4. El desbalance de clases (91% / 9%) es el problema sin resolver más importante** para la siguiente fase del proyecto. Un modelo entrenado sin corrección tendería a predecir siempre clase 1 y aún así obtener 91% de accuracy, lo que sería misleading.
+**4. El target quedó en una distribución operativa (70% / 30%) apta para clasificación supervisada**, evitando el colapso a clase única observado con reglas más simples o umbrales fijos insuficientes.
 
 ### 5.2 Dificultades Encontradas
 
 - **Formatos de fecha múltiples:** La columna `Ad_Date` presentó tres formatos distintos que requirieron parseo secuencial con doble pasada (dayfirst=False y dayfirst=True).
 - **Columnas monetarias como strings:** `Cost` y `Sale_Amount` almacenadas con símbolo `$` impidieron su uso aritmético directo; fue necesario un transformer dedicado antes de crear el target.
 - **Encoding Windows y UTF-8:** La terminal de Windows (cp1252) no soporta emojis por defecto, requiriendo `sys.stdout.reconfigure(encoding='utf-8')` en `main.py`.
-- **Desbalance de clases no anticipado:** La distribución 91%/9% de `Is_Profitable` no era evidente antes del análisis exploratorio.
-- **Creación de la variable objetivo vs Tratamiento de Outliers:** El uso prematuro de recortes intercuartílicos (IQR) sobre variables monetarias alteraba la relación matemática real entre costos y ventas, forzando falsamente una ganancia del 100%. Se corrigió calculando `Is_Profitable` estrictamente sobre los datos crudos antes de cualquier imputación o tratamiento de atípicos.
+- **Colapso de clase con umbrales fijos:** Los umbrales iniciales `tau = 0.1, 0.2, 0.3` mantuvieron el target en clase única para los registros conocidos. Se resolvió con un fallback dinámico (cuantil 70 del margen), logrando una distribución 70/30.
+- **Definición robusta de la variable objetivo (`Is_Profitable`):** Se detectó que calcular o validar el target después de transformaciones monetarias (imputación/capping) podía desalinear la etiqueta con su regla de negocio original y, además, colapsar la clase en un 100% de positivos. Se corrigió calculando `Is_Profitable` sobre valores monetarios crudos, marcando como desconocidos los registros con `Cost` o `Sale_Amount` nulos para excluirlos del set supervisado, y calibrando un umbral de margen (tau) para conservar una distribución de clases útil.
 - **Verificación de integridad cruzada (Cross-Platform Hash):** Las conversiones automáticas de salto de línea de Git (`CRLF` a `LF`) alteraban el hash SHA-256 del dataset crudo al clonarlo en sistemas Windows, marcando falsos positivos de corrupción. Se solucionó normalizando los bytes de los saltos de línea dentro de `audit.py` de forma previa al cálculo.
 
 ### 5.3 Recomendaciones
 
-- **Corregir el desbalance de clases:** Usar `class_weight='balanced'` en el clasificador o aplicar SMOTE, y evaluar con F1-score y ROC-AUC en lugar de accuracy.
+- **Mantener trazabilidad del target:** Versionar y documentar explícitamente el `tau` usado para etiquetar (`fixed` o `dynamic_fallback`) en cada corrida para asegurar reproducibilidad del conjunto supervisado.
 - **Mejorar la imputación de `Conversion Rate`:** Reemplazar el fallback actual (mediana) por `KNNImputer` o `IterativeImputer`, dado que esta columna tiene un 24% de nulos.
 - **Añadir tests unitarios:** Implementar pruebas con `pytest` para cada transformer, garantizando que el pipeline se comporte correctamente ante datos inesperados.
 

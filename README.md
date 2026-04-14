@@ -2,6 +2,13 @@
 
 Análisis exploratorio, limpieza y preprocesamiento de datos de campañas publicitarias de Google Ads, orientado a identificar patrones de rendimiento, eficiencia del gasto y oportunidades de optimización. Incluye un pipeline de ML automatizado para predecir rentabilidad de campañas (`Is_Profitable`).
 
+## Estado actual del target
+
+- `Is_Profitable` se calcula con margen de rentabilidad: `(Sale_Amount - Cost) / Cost`.
+- Se evalúan `tau = {0.1, 0.2, 0.3}`; si hay clase degenerada, se aplica `tau` dinámico (cuantil 70 del margen).
+- Registros con `Cost` o `Sale_Amount` nulos se marcan como target desconocido y se excluyen del set supervisado.
+- Resultado actual del set supervisado: 2,366 filas, con distribución aproximada 70% clase `0` y 30% clase `1`.
+
 ## Estructura del proyecto
 
 ```
@@ -53,9 +60,10 @@ Esto ejecuta en orden:
 1. Carga del dataset crudo
 2. Auditoría e integridad del archivo
 3. Optimización de memoria
-4. Creación de la variable objetivo `Is_Profitable`
-5. Pipeline de preprocesamiento (limpieza + imputación + encoding + escalado)
-6. Guardado del dataset procesado en `data/processed/`
+4. Creación temprana de `Is_Profitable` sobre datos monetarios crudos
+5. Exclusión de registros con target desconocido
+6. Pipeline de preprocesamiento (limpieza + imputación + encoding + escalado)
+7. Guardado del dataset procesado en `data/processed/`
 
 ## Dependencias principales
 
