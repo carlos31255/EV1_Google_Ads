@@ -22,6 +22,9 @@ def generate_checksum(file_path: str) -> Optional[str]:
         # Abrimos el archivo en modo lectura binaria ('rb') para leer bytes, no texto
         with open(file_path, "rb") as file:
             file_bytes = file.read()
+            # Normalizamos finales de línea (CRLF de Windows a LF nativo) 
+            # para evitar que Git cambie el hash al descargar en otra PC
+            file_bytes = file_bytes.replace(b'\r\n', b'\n')
             # Generamos y retornamos la cadena hexadecimal única del archivo
             return hashlib.sha256(file_bytes).hexdigest()
     except FileNotFoundError:

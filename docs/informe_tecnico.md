@@ -334,6 +334,7 @@ La ejecución de `python main.py` produce la siguiente salida verificada:
 - **Encoding Windows y UTF-8:** La terminal de Windows (cp1252) no soporta emojis por defecto, requiriendo `sys.stdout.reconfigure(encoding='utf-8')` en `main.py`.
 - **Desbalance de clases no anticipado:** La distribución 91%/9% de `Is_Profitable` no era evidente antes del análisis exploratorio.
 - **Creación de la variable objetivo vs Tratamiento de Outliers:** El uso prematuro de recortes intercuartílicos (IQR) sobre variables monetarias alteraba la relación matemática real entre costos y ventas, forzando falsamente una ganancia del 100%. Se corrigió calculando `Is_Profitable` estrictamente sobre los datos crudos antes de cualquier imputación o tratamiento de atípicos.
+- **Verificación de integridad cruzada (Cross-Platform Hash):** Las conversiones automáticas de salto de línea de Git (`CRLF` a `LF`) alteraban el hash SHA-256 del dataset crudo al clonarlo en sistemas Windows, marcando falsos positivos de corrupción. Se solucionó normalizando los bytes de los saltos de línea dentro de `audit.py` de forma previa al cálculo.
 
 ### 5.3 Recomendaciones
 
