@@ -129,6 +129,17 @@ La columna `Ad_Date` presentó al menos tres formatos distintos:
 
 > **Nota importante:** La distribución final del target se calcula únicamente sobre registros con `Cost` y `Sale_Amount` válidos (2,366 filas). Los 234 registros con target desconocido se excluyen del set supervisado para evitar etiquetas artificiales.
 
+### 2.5 Diagnóstico Visual en Datos Crudos
+
+Se incorporó una etapa explícita de visualización **antes de la limpieza** dentro del notebook `01_EDA_ML_GoogleAds.ipynb`, con el objetivo de separar el diagnóstico inicial de la validación posterior al procesamiento.
+
+Visualizaciones iniciales agregadas:
+
+- `outputs/boxplot_inicial.png`: boxplot horizontal de variables numéricas crudas (`Clicks`, `Impressions`, `Leads`, `Conversions`, `Conversion Rate`) para detectar dispersión y posibles atípicos.
+- `outputs/correlacion_inicial.png`: matriz de correlación en datos crudos para medir relaciones previas entre variables numéricas.
+
+Esta separación mejora la trazabilidad analítica: primero se identifica el problema real del dataset y luego se verifica el efecto de las transformaciones aplicadas.
+
 ---
 
 ## 3. Metodología de Transformación
@@ -323,6 +334,20 @@ La ejecución de `python main.py` produce la siguiente salida verificada:
    Dimensiones finales (supervisado): 2,366 filas x 23 columnas
 ```
 
+### 4.6 Validación Visual Antes vs Después de la Limpieza
+
+Además del EDA inicial y del EDA posterior a limpieza, se consolidó una sección comparativa para evaluar cambios estructurales:
+
+- `outputs/boxplot_comparativo.png`: comparación lado a lado de dispersión en variables numéricas crudas vs procesadas.
+- `outputs/correlacion_comparativa.png`: comparación de matriz de correlación inicial vs final.
+- `outputs/outlier_capping.png`: comparación de distribuciones por variable antes/después del recorte IQR.
+
+Hallazgos principales de la validación visual:
+
+1. La limpieza no distorsiona de forma abrupta la forma global de las variables; mantiene patrones de dispersión coherentes entre el estado crudo y el procesado.
+2. La estructura de correlaciones base (`Clicks`, `Impressions`, `Leads`, `Conversions`, `Conversion Rate`) se conserva en términos generales.
+3. Al incorporar variables derivadas de negocio (`Profit_Margin`, `Is_Profitable`), emergen relaciones fuertes esperadas con `Sale_Amount`, validando la lógica de etiquetado y su consistencia estadística.
+
 ---
 
 ## 5. Conclusiones y Recomendaciones
@@ -376,7 +401,7 @@ google_ads_analytics/
 │   ├── transformers.py                # 8 transformers sklearn personalizados
 │   ├── pipeline.py                    # Función build_preprocessing_pipeline()
 │   └── optimization.py               # Optimización de memoria y chunks
-├── outputs/                           # Visualizaciones generadas (4 archivos .png)
+├── outputs/                           # Visualizaciones generadas (EDA inicial, final y comparativas)
 ├── docs/
 │   └── informe_tecnico.md             # Este documento
 ├── main.py                            # Punto de entrada — python main.py

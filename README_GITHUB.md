@@ -63,6 +63,20 @@ git commit -m "tipo: descripcion corta de lo que hiciste"
 git push
 ```
 
+**7. Si tocaste notebooks o visualizaciones, ejecuta y valida**
+
+Antes de cerrar tu trabajo, ejecuta el notebook principal para regenerar gráficos y verificar que no haya celdas rotas:
+
+```bash
+# abrir Jupyter/VS Code y ejecutar en orden:
+notebooks/01_EDA_ML_GoogleAds.ipynb
+```
+
+Salida esperada cuando hay cambios en EDA:
+
+- dataset procesado exportado en `data/processed/GoogleAds_Processed.csv`
+- gráficos actualizados en `outputs/`
+
 ---
 
 ## Convencion de mensajes de commit
@@ -94,3 +108,5 @@ El archivo `.gitignore` excluye automaticamente:
 - `google_ads/` — el entorno virtual se crea localmente con `pip install -r requirements.txt`
 - `__pycache__/`, `.ipynb_checkpoints/` — archivos temporales de Python y Jupyter
 - `outputs/*.png` — las visualizaciones se regeneran ejecutando el notebook `01_EDA_ML_GoogleAds.ipynb`
+
+> Nota: aunque los `.png` estén ignorados, mantener el notebook ejecutable y coherente es obligatorio para revisión.

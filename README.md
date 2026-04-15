@@ -65,6 +65,26 @@ Esto ejecuta en orden:
 6. Pipeline de preprocesamiento (limpieza + imputación + encoding + escalado)
 7. Guardado del dataset procesado en `data/processed/`
 
+## Flujo EDA actualizado
+
+El notebook principal `notebooks/01_EDA_ML_GoogleAds.ipynb` ahora sigue un flujo explícito de diagnóstico y validación:
+
+1. Inspección inicial del dataset crudo
+2. Visualización inicial (antes de limpieza)
+3. Limpieza de datos y creación del target supervisado
+4. EDA posterior a limpieza
+5. Comparaciones antes/después (dispersión y correlación)
+
+Visualizaciones relevantes generadas en `outputs/`:
+
+- `boxplot_inicial.png`
+- `correlacion_inicial.png`
+- `boxplot_comparativo.png`
+- `correlacion_comparativa.png`
+- `outlier_capping.png`
+- `dist_objetivo.png`
+- `dist_numericas_por_target.png`
+
 ## Dependencias principales
 
 | Librería | Uso |
