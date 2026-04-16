@@ -136,9 +136,12 @@ Se incorporó una etapa explícita de visualización **antes de la limpieza** de
 Visualizaciones iniciales agregadas:
 
 - `outputs/boxplot_inicial.png`: boxplot horizontal de variables numéricas crudas (`Clicks`, `Impressions`, `Leads`, `Conversions`, `Conversion Rate`) para detectar dispersión y posibles atípicos.
+- `outputs/nulos_heatmap_inicial.png`: mapa de calor de valores faltantes en el dataset crudo para identificar concentración de nulos por columna (especialmente en `Conversion Rate`).
 - `outputs/correlacion_inicial.png`: matriz de correlación en datos crudos para medir relaciones previas entre variables numéricas.
 
 Esta separación mejora la trazabilidad analítica: primero se identifica el problema real del dataset y luego se verifica el efecto de las transformaciones aplicadas.
+
+En particular, el mapa de calor de nulos reforzó la decisión metodológica de imputación al evidenciar que la ausencia de datos no era homogénea entre columnas.
 
 ---
 
@@ -338,6 +341,7 @@ La ejecución de `python main.py` produce la siguiente salida verificada:
 
 Además del EDA inicial y del EDA posterior a limpieza, se consolidó una sección comparativa para evaluar cambios estructurales:
 
+- `outputs/nulos_heatmap_inicial.png`: diagnóstico visual inicial de nulos para justificar la estrategia de imputación.
 - `outputs/boxplot_comparativo.png`: comparación lado a lado de dispersión en variables numéricas crudas vs procesadas.
 - `outputs/correlacion_comparativa.png`: comparación de matriz de correlación inicial vs final.
 - `outputs/outlier_capping.png`: comparación de distribuciones por variable antes/después del recorte IQR.
@@ -347,6 +351,7 @@ Hallazgos principales de la validación visual:
 1. La limpieza no distorsiona de forma abrupta la forma global de las variables; mantiene patrones de dispersión coherentes entre el estado crudo y el procesado.
 2. La estructura de correlaciones base (`Clicks`, `Impressions`, `Leads`, `Conversions`, `Conversion Rate`) se conserva en términos generales.
 3. Al incorporar variables derivadas de negocio (`Profit_Margin`, `Is_Profitable`), emergen relaciones fuertes esperadas con `Sale_Amount`, validando la lógica de etiquetado y su consistencia estadística.
+4. La visualización de nulos en crudo confirmó concentración en columnas críticas y respaldó la imputación selectiva aplicada en el pipeline.
 
 ---
 
@@ -401,7 +406,7 @@ google_ads_analytics/
 │   ├── transformers.py                # 8 transformers sklearn personalizados
 │   ├── pipeline.py                    # Función build_preprocessing_pipeline()
 │   └── optimization.py               # Optimización de memoria y chunks
-├── outputs/                           # Visualizaciones generadas (EDA inicial, final y comparativas)
+├── outputs/                           # Visualizaciones generadas (EDA inicial, nulos, final y comparativas)
 ├── docs/
 │   └── informe_tecnico.md             # Este documento
 ├── main.py                            # Punto de entrada — python main.py

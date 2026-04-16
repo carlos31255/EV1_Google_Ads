@@ -70,7 +70,7 @@ Esto ejecuta en orden:
 El notebook principal `notebooks/01_EDA_ML_GoogleAds.ipynb` ahora sigue un flujo explícito de diagnóstico y validación:
 
 1. Inspección inicial del dataset crudo
-2. Visualización inicial (antes de limpieza)
+2. Visualización inicial (antes de limpieza: dispersión, nulos y correlación)
 3. Limpieza de datos y creación del target supervisado
 4. EDA posterior a limpieza
 5. Comparaciones antes/después (dispersión y correlación)
@@ -78,6 +78,7 @@ El notebook principal `notebooks/01_EDA_ML_GoogleAds.ipynb` ahora sigue un flujo
 Visualizaciones relevantes generadas en `outputs/`:
 
 - `boxplot_inicial.png`
+- `nulos_heatmap_inicial.png`
 - `correlacion_inicial.png`
 - `boxplot_comparativo.png`
 - `correlacion_comparativa.png`
