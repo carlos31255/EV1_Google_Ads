@@ -19,4 +19,4 @@ data/processed/*.png
 outputs/*.png
 
 # Documentos locales (no se suben)
-docs/presentacion_resumen.md
+docs/informe_graficos_presentacion.md
