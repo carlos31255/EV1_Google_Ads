@@ -232,34 +232,34 @@ class OutlierCapper(BaseEstimator, TransformerMixin):
         return input_features
 
 
-# G. ELIMINACIÓN DE VARIANZA CERO
+# # G. ELIMINACIÓN DE VARIANZA CERO
 
-# Esta clase elimina columnas numéricas cuya desviación estándar es exactamente 0 (valores constantes).
-# Ejemplo: una columna donde todos los registros tienen el mismo valor no aporta información.
-class DropZeroVarianceTransformer(BaseEstimator, TransformerMixin):
-    """Elimina columnas numéricas con varianza cero (valores constantes en todas las filas)."""
+# # Esta clase elimina columnas numéricas cuya desviación estándar es exactamente 0 (valores constantes).
+# # Ejemplo: una columna donde todos los registros tienen el mismo valor no aporta información.
+# class DropZeroVarianceTransformer(BaseEstimator, TransformerMixin):
+#     """Elimina columnas numéricas con varianza cero (valores constantes en todas las filas)."""
 
-    def __init__(self):
-        self.cols_to_drop_ = []
+#     def __init__(self):
+#         self.cols_to_drop_ = []
 
-    def fit(self, X, y=None):
-        # Buscamos columnas numéricas cuya desviación estándar sea exactamente 0
-        num_cols = X.select_dtypes(include=['number']).columns
-        self.cols_to_drop_ = [col for col in num_cols if X[col].std() == 0]
-        return self
+#     def fit(self, X, y=None):
+#         # Buscamos columnas numéricas cuya desviación estándar sea exactamente 0
+#         num_cols = X.select_dtypes(include=['number']).columns
+#         self.cols_to_drop_ = [col for col in num_cols if X[col].std() == 0]
+#         return self
 
-    def transform(self, X):
-        """Elimina columnas numéricas constantes detectadas en `fit`."""
-        X_copy = X.copy()
-        cols = [c for c in self.cols_to_drop_ if c in X_copy.columns]
-        return X_copy.drop(columns=cols)
+#     def transform(self, X):
+#         """Elimina columnas numéricas constantes detectadas en `fit`."""
+#         X_copy = X.copy()
+#         cols = [c for c in self.cols_to_drop_ if c in X_copy.columns]
+#         return X_copy.drop(columns=cols)
 
-    def get_feature_names_out(self, input_features=None):
-        """Devuelve nombres de columnas excluyendo las de varianza cero."""
-        if input_features is None:
-            return None
-        # Devuelve solo las columnas que NO fueron eliminadas
-        return np.array([f for f in input_features if f not in self.cols_to_drop_])
+#     def get_feature_names_out(self, input_features=None):
+#         """Devuelve nombres de columnas excluyendo las de varianza cero."""
+#         if input_features is None:
+#             return None
+#         # Devuelve solo las columnas que NO fueron eliminadas
+#         return np.array([f for f in input_features if f not in self.cols_to_drop_])
 
 
 # H. IMPUTACIÓN INTELIGENTE DE VALORES FALTANTES
@@ -275,12 +275,14 @@ class SmartImputerTransformer(BaseEstimator, TransformerMixin):
         self.low_threshold = low_threshold
         self.cols_simples_ = []
         self.cols_complejas_ = []
+        self.fill_values_ = {}
 
     def fit(self, X, y=None):
         """Clasifica columnas para imputación simple o compleja según su % de nulos."""
         porcentaje_nulos = X.isnull().mean()
         self.cols_simples_ = []
         self.cols_complejas_ = []
+        self.fill_values_ = {}
 
         for col in X.columns:
             pct = porcentaje_nulos[col]
@@ -295,25 +297,33 @@ class SmartImputerTransformer(BaseEstimator, TransformerMixin):
 
     def transform(self, X):
         """Imputa nulos con mediana/moda siguiendo la clasificación aprendida en `fit`."""
+        # X_copy = X.copy()
+
+        # # 1. Imputación Simple (< 10% nulos)
+        # for col in self.cols_simples_:
+        #     if col not in X_copy.columns:
+        #         continue
+        #     if pd.api.types.is_numeric_dtype(X_copy[col]):
+        #         X_copy[col] = X_copy[col].fillna(X_copy[col].median())
+        #     else:
+        #         X_copy[col] = X_copy[col].fillna(X_copy[col].mode()[0])
+
+        # # 2. Imputación Compleja (> 10% nulos) — fallback temporal a simple
+        # for col in self.cols_complejas_:
+        #     if col not in X_copy.columns:
+        #         continue
+        #     if pd.api.types.is_numeric_dtype(X_copy[col]):
+        #         X_copy[col] = X_copy[col].fillna(X_copy[col].median())
+        #     else:
+        #         X_copy[col] = X_copy[col].fillna(X_copy[col].mode()[0])
+
+        # return X_copy
         X_copy = X.copy()
-
-        # 1. Imputación Simple (< 10% nulos)
-        for col in self.cols_simples_:
-            if col not in X_copy.columns:
-                continue
-            if pd.api.types.is_numeric_dtype(X_copy[col]):
-                X_copy[col] = X_copy[col].fillna(X_copy[col].median())
-            else:
-                X_copy[col] = X_copy[col].fillna(X_copy[col].mode()[0])
-
-        # 2. Imputación Compleja (> 10% nulos) — fallback temporal a simple
-        for col in self.cols_complejas_:
-            if col not in X_copy.columns:
-                continue
-            if pd.api.types.is_numeric_dtype(X_copy[col]):
-                X_copy[col] = X_copy[col].fillna(X_copy[col].median())
-            else:
-                X_copy[col] = X_copy[col].fillna(X_copy[col].mode()[0])
+        
+        # Aplicamos los valores guardados de forma segura
+        for col in self.cols_simples_ + self.cols_complejas_:
+            if col in X_copy.columns and col in self.fill_values_:
+                X_copy[col] = X_copy[col].fillna(self.fill_values_[col])
 
         return X_copy
 

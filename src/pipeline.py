@@ -11,6 +11,7 @@
 from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer, make_column_selector
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.feature_selection import VarianceThreshold
 
 from src.transformers import (
     DateStandardizerTransformer,
@@ -20,7 +21,6 @@ from src.transformers import (
     DropHighMissingTransformer,
     SmartImputerTransformer,
     OutlierCapper,
-    DropZeroVarianceTransformer,
 )
 
 
@@ -53,7 +53,7 @@ def build_preprocessing_pipeline(columns_to_drop=None):
     # 1. Ruta para números: Capping -> Varianza Cero -> Escalar
     num_pipe = Pipeline([
         ('capper',        OutlierCapper(apply_capping=True)),
-        ('zero_variance', DropZeroVarianceTransformer()),
+        ('zero_variance', VarianceThreshold(threshold=0.0)),
         ('scaler',        StandardScaler()),
     ])
 
