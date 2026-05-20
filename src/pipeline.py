@@ -1,68 +1,39 @@
-# Módulo de construcción del Pipeline de Preprocesamiento.
-
-# Objetivos implementados aquí:
-#   A. build_preprocessing_pipeline() — construye y retorna el pipeline completo
-#                                       integrando todos los transformers de src/transformers.py
-#
-# Las columnas numéricas y categóricas se detectan dinámicamente con
-# make_column_selector, por lo que el pipeline se adapta si el dataset cambia.
-
+"""
+Pipeline module for Google Ads Dataset.
+Orchestrates structural cleaning, missing value handling, and statistical scaling.
+"""
 
 from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer, make_column_selector
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.feature_selection import VarianceThreshold
 
 from src.transformers import (
-    DateStandardizerTransformer,
-    TextNormalizerTransformer,
-    DropColumnsTransformer,
-    MonetaryCleanerTransformer,
-    DropHighMissingTransformer,
-    SmartImputerTransformer,
-    OutlierCapper,
-    DropZeroVarianceTransformer,
+    DateStandardizerTransformer, TextNormalizerTransformer,
+    DropColumnsTransformer, MonetaryCleanerTransformer,
+    DropHighMissingTransformer, SmartImputerTransformer
 )
 
-
-# A. CONSTRUCCIÓN DEL PIPELINE DE PREPROCESAMIENTO
-
-# Esta función construye y retorna el pipeline completo de preprocesamiento
-# adaptado al dataset de Google Ads. Detecta automáticamente qué columnas son
-# numéricas y cuáles son categóricas después de los pasos de limpieza previos.
 def build_preprocessing_pipeline(columns_to_drop=None):
     """
-    Construye y retorna el pipeline completo de preprocesamiento para el dataset de Google Ads.
-
-    Parámetros
-    ----------
-    columns_to_drop : list, opcional
-        Columnas a eliminar antes del preprocesamiento. Por defecto elimina las columnas
-        de leakage: ['Ad_ID', 'Ad_Date', 'Cost', 'Sale_Amount'].
-
-    Retorna
-    -------
-    sklearn.pipeline.Pipeline
-        Pipeline listo para aplicar fit_transform() sobre los datos crudos.
+    Builds the complete scikit-learn preprocessing pipeline.
+    Dynamically identifies numeric and categorical features.
     """
-
-    # Si no se especifican columnas a eliminar, usamos las del dataset de Google Ads
-    # que causan Data Leakage directo (fuente del target Is_Profitable)
     if columns_to_drop is None:
         columns_to_drop = ['Ad_ID', 'Ad_Date', 'Cost', 'Sale_Amount']
 
-    # 1. Ruta para números: Capping -> Varianza Cero -> Escalar
+    # Ruta de procesamiento numérico
     num_pipe = Pipeline([
-        ('capper',        OutlierCapper(apply_capping=True)),
-        ('zero_variance', DropZeroVarianceTransformer()),
-        ('scaler',        StandardScaler()),
+        ('zero_variance', VarianceThreshold(threshold=0.0)),
+        ('scaler', StandardScaler())
     ])
 
-    # 2. Ruta para textos: OneHot encoding
+    # Ruta de procesamiento categórico
     cat_pipe = Pipeline([
-        ('onehot', OneHotEncoder(handle_unknown='ignore', sparse_output=False)),
+        ('onehot', OneHotEncoder(handle_unknown='ignore', sparse_output=False))
     ])
 
-    # 3. El enrutador maestro: detecta columnas dinámicamente tras la limpieza previa
+    # Enrutador dinámico (Detecta columnas sobrevivientes a la limpieza previa)
     preprocessor = ColumnTransformer(
         transformers=[
             ('num', num_pipe, make_column_selector(dtype_include='number')),
@@ -71,21 +42,14 @@ def build_preprocessing_pipeline(columns_to_drop=None):
         remainder='drop'
     )
 
-    # 4. El Súper Pipeline completo
+    # Pipeline Maestro
     full_pipeline = Pipeline([
-        # Paso A — Estandarizar fechas y extraer features temporales (mes, día semana, fin de semana)
         ('date_standardizer', DateStandardizerTransformer()),
-        # Paso B — Normalizar capitalización y resolver typos en columnas de texto
         ('text_normalizer',   TextNormalizerTransformer()),
-        # Eliminar columnas que generan Data Leakage
-        ('drop_leaks',        DropColumnsTransformer(columns_to_drop=columns_to_drop)),
-        # Convertir columnas monetarias '$X,XXX.XX' a float
         ('monetary_clean',    MonetaryCleanerTransformer(columns=['Cost', 'Sale_Amount'])),
-        # Eliminar columnas con > 80% de nulos
+        ('drop_leaks',        DropColumnsTransformer(columns_to_drop=columns_to_drop)),
         ('drop_high_nan',     DropHighMissingTransformer(threshold=0.80)),
-        # Imputación inteligente según porcentaje de nulos
-        ('smart_imputer',     SmartImputerTransformer(low_threshold=0.10)),
-        # Preprocesamiento numérico y categórico
+        ('smart_imputer',     SmartImputerTransformer()),
         ('preprocessing',     preprocessor),
     ])
 

@@ -12,8 +12,6 @@ from .transformers import (
     DropColumnsTransformer,
     MonetaryCleanerTransformer,
     DropHighMissingTransformer,
-    OutlierCapper,
-    DropZeroVarianceTransformer,
     SmartImputerTransformer,
 )
 
