@@ -17,6 +17,7 @@ Uso:
 import os
 import sys
 import logging
+import joblib
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
@@ -215,9 +216,9 @@ def clean_and_transform(X_train: pd.DataFrame, X_test: pd.DataFrame) -> tuple:
     return X_train_proc, X_test_proc, pipeline
 
 
-def save_splits(X_train, X_test, y_train, y_test, output_dir: str) -> None:
+def save_splits(X_train, X_test, y_train, y_test, pipeline, output_dir: str) -> None:
     """
-    Persiste los splits Train/Test procesados como archivos CSV.
+    Persiste los splits Train/Test procesados como archivos CSV y guarda el pipeline.
 
     Parametros
     ----------
@@ -225,10 +226,12 @@ def save_splits(X_train, X_test, y_train, y_test, output_dir: str) -> None:
         Matrices de features procesadas.
     y_train, y_test : pd.Series
         Vectores de la variable objetivo.
+    pipeline : sklearn.pipeline.Pipeline
+        El pipeline ajustado.
     output_dir : str
         Directorio de destino para los archivos de salida.
     """
-    logging.info("STEP 6 — Saving processed splits to disk")
+    logging.info("PASO 6 \u2014 Guardando particiones procesadas y pipeline en disco")
     os.makedirs(output_dir, exist_ok=True)
 
     pd.DataFrame(X_train).to_csv(os.path.join(output_dir, "X_train.csv"), index=False)
@@ -236,46 +239,49 @@ def save_splits(X_train, X_test, y_train, y_test, output_dir: str) -> None:
     y_train.to_csv(os.path.join(output_dir, "y_train.csv"), index=False, header=True)
     y_test.to_csv(os.path.join(output_dir,  "y_test.csv"),  index=False, header=True)
 
-    logging.info(f"Files saved in: {output_dir}")
-    logging.info(f"  X_train.csv — {X_train.shape}")
-    logging.info(f"  X_test.csv  — {X_test.shape}")
+    # Guardar el pipeline ajustado para reproducibilidad
+    pipeline_path = os.path.join(output_dir, "preprocessing_pipeline.joblib")
+    joblib.dump(pipeline, pipeline_path)
+
+    logging.info(f"Archivos guardados en: {output_dir}")
+    logging.info(f"  X_train.csv \u2014 {X_train.shape}")
+    logging.info(f"  X_test.csv  \u2014 {X_test.shape}")
+    logging.info(f"  Pipeline    \u2014 {pipeline_path}")
 
 
 def run_preprocessing() -> None:
     """
     Punto de entrada principal. Ejecuta el pipeline completo de preprocesamiento.
-
-    Flujo de trabajo:
-        1. Auditoria + Carga del dataset crudo
-        2. Creacion de la variable objetivo 'Is_Profitable' con estrategia tau/margen hibrida
-        3. Division estratificada 80/20 Train/Test (RANDOM_STATE=42)
-        4. Ajuste del pipeline de sklearn solo en Train, transformacion de ambos sets
-        5. Guardado de los splits procesados en data/processed/
+    Orquestador principal del preprocesamiento.
     """
-    # STEP 1 & 2: Audit + Load
+    logging.info("=" * 55)
+    logging.info("Iniciando Preprocesamiento de Datos (Google Ads)")
+    logging.info("=" * 55)
+
+    # PASO 1 & 2: Auditoria + Carga
     df = load_and_audit(RAW_CSV, METADATA)
 
-    # STEP 3: Crear target Is_Profitable y separar features
+    # PASO 3: Crear target Is_Profitable y separar features
     X, y = create_profitable_target(df)
 
-    # STEP 4: 80/20 stratified split ANTES de limpiar (evita leakage)
-    logging.info("STEP 4 \u2014 Stratified 80/20 Train/Test split")
+    # PASO 4: Particionamiento 80/20 estratificado ANTES de limpiar (evita leakage)
+    logging.info("PASO 4 \u2014 Particionamiento 80/20 estratificado (Train/Test)")
     X_train, X_test, y_train, y_test = train_test_split(
         X, y,
         test_size=TEST_SIZE,
         random_state=RANDOM_STATE,
         stratify=y
     )
-    logging.info(f"Train set: {X_train.shape[0]:,} rows | Test set: {X_test.shape[0]:,} rows")
+    logging.info(f"Set de Entrenamiento: {X_train.shape[0]:,} filas | Set de Prueba: {X_test.shape[0]:,} filas")
 
-    # STEP 5: Limpiar y transformar (fit solo en train)
-    X_train_proc, X_test_proc, _ = clean_and_transform(X_train, X_test)
+    # PASO 5: Limpiar y transformar (fit solo en train)
+    X_train_proc, X_test_proc, pipeline_ajustado = clean_and_transform(X_train, X_test)
 
-    # STEP 6: Guardar resultados
-    save_splits(X_train_proc, X_test_proc, y_train, y_test, PROCESSED_DIR)
+    # PASO 6: Guardar resultados y el pipeline
+    save_splits(X_train_proc, X_test_proc, y_train, y_test, pipeline_ajustado, PROCESSED_DIR)
 
     logging.info("=" * 55)
-    logging.info("Preprocessing complete. Data is ready for modeling.")
+    logging.info("Preprocesamiento finalizado. Los datos estan listos para modelado.")
     logging.info("=" * 55)
 
 
