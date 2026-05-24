@@ -78,7 +78,7 @@ def objective(trial, X, y):
     elif classifier_name == "SVM":
         svm_c = trial.suggest_float("svm_C", 0.1, 100.0, log=True)
         svm_kernel = trial.suggest_categorical("svm_kernel", ["rbf", "linear"])
-        model = SVC(C=svm_c, kernel=svm_kernel, gamma="scale", class_weight='balanced', random_state=42)
+        model = SVC(C=svm_c, kernel=svm_kernel, gamma="scale", class_weight='balanced', random_state=42, probability=True)
         
     elif classifier_name == "XGBoost":
         xgb_n_estimators = trial.suggest_int("xgb_n_estimators", 50, 200)
