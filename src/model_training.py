@@ -51,7 +51,7 @@ def reconstruct_model(params: dict) -> Pipeline:
         # n_jobs=-1 paraleliza el entrenamiento ocupando todos los núcleos de tu procesador
         model = RandomForestClassifier(n_estimators=params["rf_n_estimators"], max_depth=params["rf_max_depth"], class_weight='balanced', random_state=42, n_jobs=-1)
     elif clf_name == "SVM":
-        model = SVC(C=params["svm_C"], kernel=params["svm_kernel"], gamma="scale", class_weight='balanced', random_state=42)
+        model = SVC(C=params["svm_C"], kernel=params["svm_kernel"], gamma="scale", class_weight='balanced', random_state=42, probability=True)
     elif clf_name == "XGBoost":
         # XGBoost maneja el balanceo por su cuenta al optimizar logloss
         model = XGBClassifier(n_estimators=params["xgb_n_estimators"], learning_rate=params["xgb_learning_rate"], random_state=42, eval_metric='mlogloss', n_jobs=-1)
