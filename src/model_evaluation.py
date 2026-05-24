@@ -1,11 +1,3 @@
-"""
-model_evaluation.py
--------------------
-Trabajo de la Persona B: 
-Toma el modelo final ya entrenado por la Persona A, lo evalúa utilizando 
-los datos de prueba (Test Set) que el modelo jamás ha visto, y genera 
-gráficos de rendimiento.
-"""
 
 import os
 import joblib
