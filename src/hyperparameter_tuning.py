@@ -15,6 +15,7 @@ from xgboost import XGBClassifier
 from lightgbm import LGBMClassifier
 import joblib
 
+
 # ==========================================
 # 1. Configuración de Entorno y Rutas
 # ==========================================
@@ -79,7 +80,7 @@ def objective(trial, X, y):
         svm_c = trial.suggest_float("svm_C", 0.1, 100.0, log=True)
         svm_kernel = trial.suggest_categorical("svm_kernel", ["rbf", "linear"])
         model = SVC(C=svm_c, kernel=svm_kernel, gamma="scale", class_weight='balanced', random_state=42, probability=True)
-        
+
     elif classifier_name == "XGBoost":
         xgb_n_estimators = trial.suggest_int("xgb_n_estimators", 50, 200)
         xgb_lr = trial.suggest_float("xgb_learning_rate", 1e-3, 0.3, log=True)
@@ -126,12 +127,20 @@ def run_hyperparameter_tuning() -> None:
     # Definimos dónde guardará Optuna toda su memoria histórica para poder graficar después en Jupyter
     db_path = os.path.join(MODELS_DIR, "optuna_study.db")
     
-    # Creamos un "Estudio" nuevo indicando que queremos maximizar el puntaje
+    # Borra el estudio viejo antes de crear uno nuevo
+    try:
+        optuna.delete_study(
+            study_name="google_ads_optimization",
+            storage=f"sqlite:///{db_path}"
+        )
+    except KeyError:
+        pass
+
     study = optuna.create_study(
-        direction="maximize", 
-        study_name="google_ads_optimization", 
+        direction="maximize",
+        study_name="google_ads_optimization",
         storage=f"sqlite:///{db_path}",
-        load_if_exists=True
+        load_if_exists=False
     )
     
     # Corremos 30 intentos distintos automatizados
@@ -148,6 +157,10 @@ def run_hyperparameter_tuning() -> None:
     joblib.dump(study.best_params, BEST_PARAMS_FILE)
     print(f"Mejores parámetros guardados en {BEST_PARAMS_FILE}")
     print(f"Historial del estudio guardado en {db_path}")
+
+    study.best_trial.value  # Score del ganador actual
+
+# Comparar scores entre modelos
 
 if __name__ == "__main__":
     run_hyperparameter_tuning()
