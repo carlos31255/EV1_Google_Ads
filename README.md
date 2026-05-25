@@ -78,11 +78,17 @@ google_ads\Scripts\python src\hyperparameter_tuning.py
 ```
 > Evalúa 5 algoritmos (SVM, Random Forest, XGBoost, LightGBM, Regresión Logística) con y sin PCA. Guarda el historial completo en `models/optuna_study.db` y la receta ganadora en `models/best_params.pkl`.
 
-**Paso 3 — Entrenamiento del modelo final:**
+**Paso 3 — Entrenamiento del modelo final (Persona A):**
 ```bash
 google_ads\Scripts\python src\model_training.py
 ```
 > Reconstruye el pipeline ganador con los parámetros de `best_params.pkl`, lo entrena con el set completo de entrenamiento y lo guarda en `models/final_classifier.joblib`.
+
+**Paso 4 — Evaluación sobre datos nunca vistos (Persona B):**
+```bash
+google_ads\Scripts\python src\model_evaluation.py
+```
+> Carga el modelo final (`final_classifier.joblib`) y lo evalúa contra el set de prueba apartado (`X_test.csv`). Genera un reporte tabular en `reports/classification_report.csv` y gráficos (matriz de confusión y curva ROC) en `reports/figures/`.
 
 **Exploración de resultados (notebooks):**
 - `notebooks/03_unsupervised_modeling.ipynb` — Clustering y PCA exploratorio
