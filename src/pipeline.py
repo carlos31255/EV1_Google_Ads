@@ -8,7 +8,7 @@ from sklearn.compose import ColumnTransformer, make_column_selector
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from sklearn.feature_selection import VarianceThreshold
 
-from src.transformers import (
+from transformers import (
     DateStandardizerTransformer, TextNormalizerTransformer,
     DropColumnsTransformer, MonetaryCleanerTransformer,
     DropHighMissingTransformer, SmartImputerTransformer
