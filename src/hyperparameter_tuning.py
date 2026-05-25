@@ -30,9 +30,10 @@ logging.basicConfig(
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PROCESSED_DIR = os.path.join(BASE_DIR, "data", "processed")
 MODELS_DIR = os.path.join(BASE_DIR, "models")
+TRAINED_MODELS_DIR = os.path.join(MODELS_DIR, "trained_models")
 
 # Archivo final donde Optuna guardará la configuración ganadora
-BEST_PARAMS_FILE = os.path.join(MODELS_DIR, "best_params.pkl")
+BEST_PARAMS_FILE = os.path.join(TRAINED_MODELS_DIR, "best_params.pkl")
 
 
 # ==========================================
@@ -41,8 +42,21 @@ BEST_PARAMS_FILE = os.path.join(MODELS_DIR, "best_params.pkl")
 
 def objective(trial, X, y):
     """
-    Esta función es el núcleo de Optuna. Se ejecuta repetidamente (n_trials veces).
-    En cada iteración ('trial'), Optuna 'sugiere' combinaciones de hiperparámetros de manera inteligente.
+    Función objetivo de Optuna para optimizar los hiperparámetros del modelo.
+
+    Parameters
+    ----------
+    trial : optuna.trial.Trial
+        Objeto trial de Optuna que sugiere hiperparámetros.
+    X : pd.DataFrame
+        Features de entrenamiento.
+    y : pd.Series
+        Target de entrenamiento.
+
+    Returns
+    -------
+    float
+        Promedio del F1-Macro score obtenido en Cross-Validation.
     """
     steps = [] # Lista secuencial que almacenará los componentes del Pipeline predictivo
     
@@ -116,55 +130,80 @@ def objective(trial, X, y):
 # ==========================================
 
 def run_hyperparameter_tuning() -> None:
+    """
+    Ejecuta el proceso de optimización de hiperparámetros usando Optuna.
+    Lee los datos procesados, corre 30 trials de Optuna y guarda los mejores
+    parámetros encontrados en la carpeta de modelos entrenados.
+
+    Returns
+    -------
+    None
+    
+    Raises
+    ------
+    FileNotFoundError
+        Si no se encuentran los archivos de datos procesados.
+    Exception
+        Para cualquier otro error durante la optimización o guardado.
+    """
     print("Iniciando Optuna para Modelos, Hiperparámetros y PCA...")
 
-    # Cargar datos limpios de entrenamiento (el Output de data_preprocessing.py)
-    X_train = pd.read_csv(os.path.join(PROCESSED_DIR, "X_train.csv"))
-    y_train = pd.read_csv(os.path.join(PROCESSED_DIR, "y_train.csv")).squeeze("columns")
-    
-    os.makedirs(MODELS_DIR, exist_ok=True)
-    
-    # Definimos dónde guardará Optuna toda su memoria histórica para poder graficar después en Jupyter
-    db_path = os.path.join(MODELS_DIR, "optuna_study.db")
-    
-    # Borra el estudio viejo antes de crear uno nuevo
     try:
-        optuna.delete_study(
+        # Cargar datos limpios de entrenamiento (el Output de data_preprocessing.py)
+        X_train_path = os.path.join(PROCESSED_DIR, "X_train.csv")
+        y_train_path = os.path.join(PROCESSED_DIR, "y_train.csv")
+        
+        if not os.path.exists(X_train_path) or not os.path.exists(y_train_path):
+            raise FileNotFoundError("Los archivos procesados X_train.csv o y_train.csv no existen.")
+            
+        X_train = pd.read_csv(X_train_path)
+        y_train = pd.read_csv(y_train_path).squeeze("columns")
+        
+        os.makedirs(TRAINED_MODELS_DIR, exist_ok=True)
+        
+        # Definimos dónde guardará Optuna toda su memoria histórica para poder graficar después en Jupyter
+        db_path = os.path.join(TRAINED_MODELS_DIR, "optuna_study.db")
+        
+        # Borra el estudio viejo antes de crear uno nuevo
+        try:
+            optuna.delete_study(
+                study_name="google_ads_optimization",
+                storage=f"sqlite:///{db_path}"
+            )
+        except KeyError:
+            pass
+
+        # Fijamos la semilla del sampler de Optuna para garantizar reproducibilidad total.
+        # Sin esto, Optuna exploraría combinaciones en orden distinto en cada corrida.
+        sampler = optuna.samplers.TPESampler(seed=42)
+        
+        # Creamos un "Estudio" nuevo indicando que queremos maximizar el puntaje
+        study = optuna.create_study(
+            direction="maximize", 
             study_name="google_ads_optimization",
-            storage=f"sqlite:///{db_path}"
+            sampler=sampler,
+            storage=f"sqlite:///{db_path}",
+            load_if_exists=False
         )
-    except KeyError:
-        pass
+        
+        # Corremos 30 intentos distintos automatizados
+        study.optimize(lambda trial: objective(trial, X_train, y_train), n_trials=30) 
 
-    # Fijamos la semilla del sampler de Optuna para garantizar reproducibilidad total.
-    # Sin esto, Optuna exploraría combinaciones en orden distinto en cada corrida.
-    sampler = optuna.samplers.TPESampler(seed=42)
-    
-    # Creamos un "Estudio" nuevo indicando que queremos maximizar el puntaje
-    study = optuna.create_study(
-        direction="maximize", 
-        study_name="google_ads_optimization",
-        sampler=sampler,
-        storage=f"sqlite:///{db_path}",
-        load_if_exists=False
-    )
-    
-    # Corremos 30 intentos distintos automatizados
-    study.optimize(lambda trial: objective(trial, X_train, y_train), n_trials=30) 
+        # Presentación de resultados
+        print("\n" + "="*60)
+        print(f"RESULTADO GANADOR:")
+        print(f"F1-Macro Score (CV): {study.best_value:.4f}")
+        print(f"Parámetros: {study.best_params}")
+        print("="*60 + "\n")
 
-    # Presentación de resultados
-    print("\n" + "="*60)
-    print(f"RESULTADO GANADOR:")
-    print(f"F1-Macro Score (CV): {study.best_value:.4f}")
-    print(f"Parámetros: {study.best_params}")
-    print("="*60 + "\n")
+        # Tomamos exclusivamente el diccionario ganador y lo congelamos en un .pkl
+        joblib.dump(study.best_params, BEST_PARAMS_FILE)
+        print(f"Mejores parámetros guardados en {BEST_PARAMS_FILE}")
+        print(f"Historial del estudio guardado en {db_path}")
 
-    # Tomamos exclusivamente el diccionario ganador y lo congelamos en un .pkl
-    joblib.dump(study.best_params, BEST_PARAMS_FILE)
-    print(f"Mejores parámetros guardados en {BEST_PARAMS_FILE}")
-    print(f"Historial del estudio guardado en {db_path}")
-
-    study.best_trial.value  # Score del ganador actual
+    except Exception as e:
+        logging.error(f"Error durante la optimización de hiperparámetros: {e}")
+        raise
 
 # Comparar scores entre modelos
 

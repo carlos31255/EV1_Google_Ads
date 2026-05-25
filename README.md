@@ -17,7 +17,7 @@ google_ads_analytics/
 │   ├── raw/               # Dataset original sin modificar
 │   └── processed/         # Datos limpios y transformados
 ├── notebooks/             # Análisis exploratorio y documentación del proceso
-│   ├── 01_EDA_ML_GoogleAds.ipynb         # EDA inicial
+│   ├── 01_exploratory_analysis.ipynb     # EDA inicial
 │   ├── 02_Pipelines.ipynb                # Construcción del pipeline (Evaluación 1)
 │   ├── 03_unsupervised_modeling.ipynb    # Clustering y PCA (Evaluación 2)
 │   └── 04_hyperparameter_optimization.ipynb  # Visualización Optuna (Evaluación 2)
@@ -30,8 +30,12 @@ google_ads_analytics/
 │   ├── data_preprocessing.py  # Limpieza, split y serialización del pipeline
 │   ├── hyperparameter_tuning.py  # Búsqueda de hiperparámetros con Optuna
 │   └── model_training.py      # Entrenamiento final con los mejores parámetros
-├── models/                # Modelos y artefactos serializados (.joblib, .pkl, .db)
-├── outputs/               # Visualizaciones generadas
+├── models/
+│   └── trained_models/    # Modelos y artefactos serializados (.joblib, .pkl, .db)
+├── results/               # Resultados experimentales
+│   ├── metrics/           # Reportes en CSV
+│   └── plots/             # Gráficos (ROC, matriz de confusión)
+├── outputs/               # Visualizaciones generadas en etapas previas
 ├── docs/                  # Informe técnico y documentación extra
 ├── main.py                # Pipeline ETL de la Evaluación 1
 ├── .gitignore
@@ -76,19 +80,19 @@ google_ads\Scripts\python src\data_preprocessing.py
 ```bash
 google_ads\Scripts\python src\hyperparameter_tuning.py
 ```
-> Evalúa 5 algoritmos (SVM, Random Forest, XGBoost, LightGBM, Regresión Logística) con y sin PCA. Guarda el historial completo en `models/optuna_study.db` y la receta ganadora en `models/best_params.pkl`.
+> Evalúa 5 algoritmos (SVM, Random Forest, XGBoost, LightGBM, Regresión Logística) con y sin PCA. Guarda el historial completo en `models/trained_models/optuna_study.db` y la receta ganadora en `models/trained_models/best_params.pkl`.
 
 **Paso 3 — Entrenamiento del modelo final (Persona A):**
 ```bash
 google_ads\Scripts\python src\model_training.py
 ```
-> Reconstruye el pipeline ganador con los parámetros de `best_params.pkl`, lo entrena con el set completo de entrenamiento y lo guarda en `models/final_classifier.joblib`.
+> Reconstruye el pipeline ganador con los parámetros de `best_params.pkl`, lo entrena con el set completo de entrenamiento y lo guarda en `models/trained_models/final_classifier.joblib`.
 
 **Paso 4 — Evaluación sobre datos nunca vistos (Persona B):**
 ```bash
 google_ads\Scripts\python src\model_evaluation.py
 ```
-> Carga el modelo final (`final_classifier.joblib`) y lo evalúa contra el set de prueba apartado (`X_test.csv`). Genera un reporte tabular en `reports/classification_report.csv` y gráficos (matriz de confusión y curva ROC) en `reports/figures/`.
+> Carga el modelo final (`final_classifier.joblib`) y lo evalúa contra el set de prueba apartado (`X_test.csv`). Genera un reporte tabular en `results/metrics/classification_report.csv` y gráficos (matriz de confusión y curva ROC) en `results/plots/`.
 
 **Exploración de resultados (notebooks):**
 - `notebooks/03_unsupervised_modeling.ipynb` — Clustering y PCA exploratorio
@@ -96,7 +100,7 @@ google_ads\Scripts\python src\model_evaluation.py
 
 ## Flujo EDA actualizado
 
-El notebook principal `notebooks/01_EDA_ML_GoogleAds.ipynb` ahora sigue un flujo explícito de diagnóstico y validación:
+El notebook principal `notebooks/01_exploratory_analysis.ipynb` ahora sigue un flujo explícito de diagnóstico y validación:
 
 1. Inspección inicial del dataset crudo
 2. Visualización inicial (antes de limpieza: dispersión, nulos y correlación)
