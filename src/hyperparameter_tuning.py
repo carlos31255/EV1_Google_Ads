@@ -136,9 +136,15 @@ def run_hyperparameter_tuning() -> None:
     except KeyError:
         pass
 
+    # Fijamos la semilla del sampler de Optuna para garantizar reproducibilidad total.
+    # Sin esto, Optuna exploraría combinaciones en orden distinto en cada corrida.
+    sampler = optuna.samplers.TPESampler(seed=42)
+    
+    # Creamos un "Estudio" nuevo indicando que queremos maximizar el puntaje
     study = optuna.create_study(
-        direction="maximize",
+        direction="maximize", 
         study_name="google_ads_optimization",
+        sampler=sampler,
         storage=f"sqlite:///{db_path}",
         load_if_exists=False
     )

@@ -98,7 +98,6 @@ def run_model_training():
     # Guardamos el pipeline matemático como un binario estático para que luego se pueda cargar y predecir sin volver a entrenar.
     joblib.dump(final_model, FINAL_MODEL_FILE)
     logging.info(f"Modelo final entrenado y guardado en: {FINAL_MODEL_FILE}")
-    logging.info("¡Trabajo de la Persona A terminado! Listo para que la Persona B evalúe el modelo.")
 
 if __name__ == "__main__":
     run_model_training()

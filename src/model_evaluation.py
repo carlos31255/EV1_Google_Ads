@@ -36,7 +36,12 @@ def run_model_evaluation():
     # 4. Generar Predicciones
     logging.info("Realizando predicciones...")
     y_pred = pipeline.predict(X_test)
-    y_proba = pipeline.predict_proba(X_test)[:, 1] # Necesario para la curva ROC
+    # SVM no expone predict_proba por defecto; si falla usamos decision_function como alternativa.
+    # decision_function retorna la distancia al hiperplano separador, suficiente para ordenar los casos en la curva ROC.
+    try:
+        y_proba = pipeline.predict_proba(X_test)[:, 1]
+    except AttributeError:
+        y_proba = pipeline.decision_function(X_test)
 
     # 5. Imprimir Métricas en Consola
     class_names = ["No Rentable", "Rentable"]
@@ -44,6 +49,13 @@ def run_model_evaluation():
     logging.info("REPORTE DE CLASIFICACIÓN FINAL")
     logging.info("="*50)
     print(classification_report(y_test, y_pred, target_names=class_names))
+
+    # Guardar el reporte como tabla CSV en reports/
+    report_dict = classification_report(y_test, y_pred, target_names=class_names, output_dict=True)
+    report_df = pd.DataFrame(report_dict).transpose()
+    os.makedirs(os.path.join(BASE_DIR, "reports"), exist_ok=True)
+    report_df.to_csv(os.path.join(BASE_DIR, "reports", "classification_report.csv"))
+    logging.info(f"Reporte guardado como tabla en: reports/classification_report.csv")
     
     roc_auc = roc_auc_score(y_test, y_proba)
     logging.info(f"Puntuación ROC-AUC: {roc_auc:.4f}")

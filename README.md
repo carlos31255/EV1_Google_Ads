@@ -16,18 +16,24 @@ google_ads_analytics/
 ├── data/
 │   ├── raw/               # Dataset original sin modificar
 │   └── processed/         # Datos limpios y transformados
-├── notebooks/             # Análisis exploratorio y construcción del pipeline
-│   ├── 01_EDA_ML_GoogleAds.ipynb
-│   └── 02_Pipelines.ipynb
+├── notebooks/             # Análisis exploratorio y documentación del proceso
+│   ├── 01_EDA_ML_GoogleAds.ipynb         # EDA inicial
+│   ├── 02_Pipelines.ipynb                # Construcción del pipeline (Evaluación 1)
+│   ├── 03_unsupervised_modeling.ipynb    # Clustering y PCA (Evaluación 2)
+│   └── 04_hyperparameter_optimization.ipynb  # Visualización Optuna (Evaluación 2)
 ├── src/
 │   ├── __init__.py
-│   ├── audit.py           # Auditoría e integridad del dataset
-│   ├── transformers.py    # Transformers personalizados de scikit-learn
-│   ├── pipeline.py        # Función build_preprocessing_pipeline()
-│   └── optimization.py    # Optimización de memoria y lectura por chunks
+│   ├── audit.py               # Auditoría e integridad del dataset
+│   ├── transformers.py        # Transformers personalizados de scikit-learn
+│   ├── pipeline.py            # Función build_preprocessing_pipeline()
+│   ├── optimization.py        # Optimización de memoria y lectura por chunks
+│   ├── data_preprocessing.py  # Limpieza, split y serialización del pipeline
+│   ├── hyperparameter_tuning.py  # Búsqueda de hiperparámetros con Optuna
+│   └── model_training.py      # Entrenamiento final con los mejores parámetros
+├── models/                # Modelos y artefactos serializados (.joblib, .pkl, .db)
 ├── outputs/               # Visualizaciones generadas
 ├── docs/                  # Informe técnico y documentación extra
-├── main.py                # Punto de entrada — ejecuta el ETL completo
+├── main.py                # Pipeline ETL de la Evaluación 1
 ├── .gitignore
 ├── requirements.txt
 └── README.md
@@ -50,20 +56,37 @@ google_ads_analytics/
 
 ## Ejecución
 
-Para correr el pipeline completo de ETL y preprocesamiento de forma automática:
+### Evaluación 1 — ETL y Preprocesamiento básico
 
 ```bash
 python main.py
 ```
 
-Esto ejecuta en orden:
-1. Carga del dataset crudo
-2. Auditoría e integridad del archivo
-3. Optimización de memoria
-4. Creación temprana de `Is_Profitable` sobre datos monetarios crudos
-5. Exclusión de registros con target desconocido
-6. Pipeline de preprocesamiento (limpieza + imputación + encoding + escalado)
-7. Guardado del dataset procesado en `data/processed/`
+### Evaluación 2 — Modelado y Optimización (Persona A)
+
+Los scripts se ejecutan **uno a uno** para no sobrecargar el sistema, ya que cada fase puede ser costosa computacionalmente. Se recomienda esperar a que termine cada paso antes de continuar.
+
+**Paso 1 — Preprocesamiento y generación de splits:**
+```bash
+google_ads\Scripts\python src\data_preprocessing.py
+```
+> Genera `X_train.csv`, `X_test.csv`, `y_train.csv`, `y_test.csv` y `preprocessing_pipeline.joblib` en `data/processed/`.
+
+**Paso 2 — Búsqueda de hiperparámetros con Optuna (30 trials):**
+```bash
+google_ads\Scripts\python src\hyperparameter_tuning.py
+```
+> Evalúa 5 algoritmos (SVM, Random Forest, XGBoost, LightGBM, Regresión Logística) con y sin PCA. Guarda el historial completo en `models/optuna_study.db` y la receta ganadora en `models/best_params.pkl`.
+
+**Paso 3 — Entrenamiento del modelo final:**
+```bash
+google_ads\Scripts\python src\model_training.py
+```
+> Reconstruye el pipeline ganador con los parámetros de `best_params.pkl`, lo entrena con el set completo de entrenamiento y lo guarda en `models/final_classifier.joblib`.
+
+**Exploración de resultados (notebooks):**
+- `notebooks/03_unsupervised_modeling.ipynb` — Clustering y PCA exploratorio
+- `notebooks/04_hyperparameter_optimization.ipynb` — Visualizaciones interactivas de Optuna
 
 ## Flujo EDA actualizado
 
@@ -94,6 +117,10 @@ Visualizaciones relevantes generadas en `outputs/`:
 | `numpy` | Operaciones numéricas |
 | `scikit-learn` | Pipeline, transformers y modelado |
 | `matplotlib` / `seaborn` | Visualización |
+| `optuna` | Optimización automática de hiperparámetros |
+| `xgboost` / `lightgbm` | Modelos de gradient boosting |
+| `joblib` | Serialización de modelos y pipelines |
+| `plotly` | Gráficos interactivos (visualizaciones Optuna) |
 | `jupyter` | Exploración en notebooks |
 
 ## Dataset
