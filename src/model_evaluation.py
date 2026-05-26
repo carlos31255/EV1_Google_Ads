@@ -40,6 +40,7 @@ def run_model_evaluation():
     logging.info("Iniciando Evaluación del Modelo...")
 
     try:
+        # 1. Verificar existencia del modelo final
         if not os.path.exists(FINAL_MODEL_FILE):
             raise FileNotFoundError(f"No se encontró el modelo final en {FINAL_MODEL_FILE}")
 
