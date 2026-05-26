@@ -7,8 +7,8 @@ print(" COMPARACION DE REPRODUCIBILIDAD (NUEVA EJECUCION vs BACKUP)")
 print("="*60)
 
 # 1. Comparar best_params.pkl
-new_params_path = 'models/best_params.pkl'
-bak_params_path = 'backup/models/best_params.pkl'
+new_params_path = 'models/trained_models/best_params.pkl'
+bak_params_path = 'backup/models/trained_models/best_params.pkl'
 
 if os.path.exists(new_params_path) and os.path.exists(bak_params_path):
     new_params = joblib.load(new_params_path)
@@ -27,8 +27,8 @@ else:
     print("[ERROR] Falta best_params.pkl en alguna de las carpetas.")
 
 # 2. Comparar reportes de clasificación
-new_rep_path = 'reports/classification_report.csv'
-bak_rep_path = 'backup/reports/classification_report.csv'
+new_rep_path = 'results/metrics/classification_report.csv'
+bak_rep_path = 'backup/results/metrics/classification_report.csv'
 
 if os.path.exists(new_rep_path) and os.path.exists(bak_rep_path):
     new_df = pd.read_csv(new_rep_path, index_col=0)

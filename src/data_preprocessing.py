@@ -27,13 +27,14 @@ logging.basicConfig(
     format="%(levelname)s | %(message)s"
 )
 
-# Permite importar modulos desde src/ independientemente del directorio de trabajo
+# Permite importar modulos desde la raiz
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, os.path.join(BASE_DIR, "src"))
+if BASE_DIR not in sys.path:
+    sys.path.insert(0, BASE_DIR)
 
-from audit import verify_data_integrity
-from optimization import read_csv_in_chunks
-from pipeline import build_preprocessing_pipeline
+from src.audit import verify_data_integrity
+from src.optimization import read_csv_in_chunks
+from src.pipeline import build_preprocessing_pipeline
 
 # ──────────────────────────────────────────────────────
 # CONSTANTES Y RUTAS DEL PROYECTO
