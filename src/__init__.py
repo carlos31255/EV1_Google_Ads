@@ -9,10 +9,12 @@ from .audit import (
 from .transformers import (
     DateStandardizerTransformer,
     TextNormalizerTransformer,
-    DropColumnsTransformer,
     MonetaryCleanerTransformer,
+    DropColumnsTransformer,
     DropHighMissingTransformer,
     SmartImputerTransformer,
+    OutlierCapper,
+    DropZeroVarianceTransformer,
 )
 
 from .optimization import (

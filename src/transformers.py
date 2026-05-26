@@ -99,3 +99,42 @@ class SmartImputerTransformer(BaseEstimator, TransformerMixin):
     def transform(self, X):
         # Aplicamos los valores aprendidos para rellenar los vacíos en datos nuevos
         return X.fillna(self.impute_values_)
+class OutlierCapper(BaseEstimator, TransformerMixin):
+    """Caps outliers in numeric columns using the 1.5 * IQR rule."""
+    def __init__(self, apply_capping=True):
+        self.apply_capping = apply_capping
+        self.bounds_ = {}
+
+    def fit(self, X, y=None):
+        if self.apply_capping:
+            for col in X.columns:
+                if pd.api.types.is_numeric_dtype(X[col]):
+                    q1 = X[col].quantile(0.25)
+                    q3 = X[col].quantile(0.75)
+                    iqr = q3 - q1
+                    self.bounds_[col] = (q1 - 1.5 * iqr, q3 + 1.5 * iqr)
+        return self
+
+    def transform(self, X):
+        X_copy = X.copy()
+        if self.apply_capping:
+            for col, (lower, upper) in self.bounds_.items():
+                if col in X_copy.columns:
+                    X_copy[col] = X_copy[col].clip(lower=lower, upper=upper)
+        return X_copy
+
+class DropZeroVarianceTransformer(BaseEstimator, TransformerMixin):
+    """Drops numeric columns with zero variance."""
+    def __init__(self):
+        self.zero_var_cols_ = []
+
+    def fit(self, X, y=None):
+        for col in X.columns:
+            if pd.api.types.is_numeric_dtype(X[col]):
+                # Maneja arrays con un solo elemento único como 0 variance
+                if X[col].nunique() <= 1:
+                    self.zero_var_cols_.append(col)
+        return self
+
+    def transform(self, X):
+        return X.drop(columns=self.zero_var_cols_, errors='ignore')
