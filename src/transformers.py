@@ -22,6 +22,16 @@ class DateStandardizerTransformer(BaseEstimator, TransformerMixin):
             X_copy['Is_Weekend'] = dates.dt.dayofweek.isin([5, 6]).astype(int)
         return X_copy
 
+    def get_feature_names_out(self, input_features=None):
+        if input_features is None:
+            return np.array([], dtype=object)
+        features = list(input_features)
+        # Si 'Ad_Date' está presente, este transformador genera 3 columnas adicionales en transform()
+        if 'Ad_Date' in features:
+            features.extend(['Ad_Month', 'Ad_DOW', 'Is_Weekend'])
+        return np.array(features, dtype=object)
+
+
 class TextNormalizerTransformer(BaseEstimator, TransformerMixin):
     """Normalizes text capitalization to group similar categorical strings."""
     def fit(self, X, y=None):
@@ -35,6 +45,12 @@ class TextNormalizerTransformer(BaseEstimator, TransformerMixin):
             if col in X_copy.columns:
                 X_copy[col] = X_copy[col].astype(str).str.title().str.strip()
         return X_copy
+
+    def get_feature_names_out(self, input_features=None):
+        if input_features is None:
+            return np.array([], dtype=object)
+        return np.array(input_features, dtype=object)
+
 
 class MonetaryCleanerTransformer(BaseEstimator, TransformerMixin):
     """Converts monetary strings (e.g., '$1,234.50') into clean float values."""
@@ -53,6 +69,12 @@ class MonetaryCleanerTransformer(BaseEstimator, TransformerMixin):
                 X_copy[col] = pd.to_numeric(X_copy[col], errors='coerce')
         return X_copy
 
+    def get_feature_names_out(self, input_features=None):
+        if input_features is None:
+            return np.array([], dtype=object)
+        return np.array(input_features, dtype=object)
+
+
 class DropColumnsTransformer(BaseEstimator, TransformerMixin):
     """Drops columns that cause data leakage or have no predictive value."""
     def __init__(self, columns_to_drop=None):
@@ -63,6 +85,12 @@ class DropColumnsTransformer(BaseEstimator, TransformerMixin):
 
     def transform(self, X):
         return X.drop(columns=self.columns_to_drop, errors='ignore')
+
+    def get_feature_names_out(self, input_features=None):
+        if input_features is None:
+            return np.array([], dtype=object)
+        return np.array([f for f in input_features if f not in self.columns_to_drop], dtype=object)
+
 
 class DropHighMissingTransformer(BaseEstimator, TransformerMixin):
     """Drops columns exceeding a defined threshold of missing values."""
@@ -77,6 +105,12 @@ class DropHighMissingTransformer(BaseEstimator, TransformerMixin):
 
     def transform(self, X):
         return X.drop(columns=self.cols_to_drop_, errors='ignore')
+    
+    def get_feature_names_out(self, input_features=None):
+        if input_features is None:
+            return np.array([], dtype=object)
+        return np.array([f for f in input_features if f not in self.cols_to_drop_], dtype=object)
+
 
 class SmartImputerTransformer(BaseEstimator, TransformerMixin):
     """
@@ -99,6 +133,13 @@ class SmartImputerTransformer(BaseEstimator, TransformerMixin):
     def transform(self, X):
         # Aplicamos los valores aprendidos para rellenar los vacíos en datos nuevos
         return X.fillna(self.impute_values_)
+    
+    def get_feature_names_out(self, input_features=None):
+        if input_features is None:
+            return np.array([], dtype=object)
+        return np.array(input_features, dtype=object)
+    
+    
 class OutlierCapper(BaseEstimator, TransformerMixin):
     """Caps outliers in numeric columns using the 1.5 * IQR rule."""
     def __init__(self, apply_capping=True):
@@ -122,6 +163,12 @@ class OutlierCapper(BaseEstimator, TransformerMixin):
                 if col in X_copy.columns:
                     X_copy[col] = X_copy[col].clip(lower=lower, upper=upper)
         return X_copy
+    
+    def get_feature_names_out(self, input_features=None):
+        if input_features is None:
+            return np.array([], dtype=object)
+        return np.array(input_features, dtype=object)
+
 
 class DropZeroVarianceTransformer(BaseEstimator, TransformerMixin):
     """Drops numeric columns with zero variance."""
@@ -138,3 +185,8 @@ class DropZeroVarianceTransformer(BaseEstimator, TransformerMixin):
 
     def transform(self, X):
         return X.drop(columns=self.zero_var_cols_, errors='ignore')
+    
+    def get_feature_names_out(self, input_features=None):
+        if input_features is None:
+            return np.array([], dtype=object)
+        return np.array([f for f in input_features if f not in self.zero_var_cols_], dtype=object)
