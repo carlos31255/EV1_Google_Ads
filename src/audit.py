@@ -1,9 +1,10 @@
 """
-Data Audit Module.
-Verifies data integrity and provenance using metadata and SHA-256 hashing.
+Módulo de Auditoría de Datos.
+Verifica la integridad y procedencia del dataset mediante metadata y hashing SHA-256.
 
-NOTE: The metadata generation step (create_metadata_file) should be executed 
-ONLY ONCE when the raw data is first obtained to establish the ground truth.
+NOTA: El paso de generación de metadata (create_metadata_file) debe ejecutarse
+UNA SOLA VEZ cuando se obtiene el dataset crudo por primera vez, para establecer
+el hash oficial de referencia.
 """
 import hashlib
 import logging
@@ -16,7 +17,17 @@ logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 
 def generate_checksum(file_path: str) -> Optional[str]:
     """
-    Generates a SHA-256 hash of a file.
+    Genera el hash SHA-256 de un archivo.
+
+    Parameters
+    ----------
+    file_path : str
+        Ruta absoluta al archivo a hashear.
+
+    Returns
+    -------
+    Optional[str]
+        Cadena hexadecimal del hash, o None si el archivo no existe.
     """
     try:
         # Abrimos el archivo en modo lectura binaria ('rb') para leer bytes, no texto
@@ -28,14 +39,24 @@ def generate_checksum(file_path: str) -> Optional[str]:
             # Generamos y retornamos la cadena hexadecimal única del archivo
             return hashlib.sha256(file_bytes).hexdigest()
     except FileNotFoundError:
-        logging.error(f"File not found at: {file_path}")
+        logging.error(f"Archivo no encontrado en: {file_path}")
         return None
 
 def get_file_metadata(file_path: str) -> Optional[Dict]:
     """
-    Retrieves file size (MB) and its SHA-256 hash.
+    Obtiene el tamaño del archivo (en MB) y su hash SHA-256.
+
+    Parameters
+    ----------
+    file_path : str
+        Ruta absoluta al archivo del que se extraerá la metadata.
+
+    Returns
+    -------
+    Optional[Dict]
+        Diccionario con nombre, tamaño y checksum del archivo, o None si no existe.
     """
-    logging.info(f"Extracting metadata for {file_path}...")
+    logging.info(f"Extrayendo metadata de: {file_path}...")
     try:
         # Calculamos el tamaño del archivo y lo pasamos a Megabytes
         size_mb = os.path.getsize(file_path) / (1024 * 1024)
@@ -52,20 +73,39 @@ def get_file_metadata(file_path: str) -> Optional[Dict]:
 
 def create_metadata_file(file_path: str, metadata_path: str) -> None:
     """
-    Creates the official metadata.json file (runs only once).
+    Crea el archivo oficial metadata.json (debe ejecutarse una sola vez).
+
+    Parameters
+    ----------
+    file_path : str
+        Ruta al archivo CSV crudo del que se generará el hash oficial.
+    metadata_path : str
+        Ruta donde se guardará el archivo metadata.json resultante.
     """
     metadata = get_file_metadata(file_path)
     if metadata:
         # Guardamos el diccionario como un archivo JSON físico
         with open(metadata_path, 'w') as json_file:
             json.dump(metadata, json_file, indent=4)
-        logging.info(f"Official metadata saved securely at: {metadata_path}")
+        logging.info(f"Metadata oficial guardada correctamente en: {metadata_path}")
 
 def verify_data_integrity(file_path: str, metadata_path: str) -> bool:
     """
-    Compares current file hash against the official metadata.json.
+    Compara el hash actual del archivo contra el hash oficial en metadata.json.
+
+    Parameters
+    ----------
+    file_path : str
+        Ruta al archivo CSV cuya integridad se quiere verificar.
+    metadata_path : str
+        Ruta al archivo metadata.json con el hash oficial de referencia.
+
+    Returns
+    -------
+    bool
+        True si el archivo no fue modificado, False si se detectó alteración.
     """
-    logging.info(f"Verifying integrity for: {file_path} against {metadata_path}")
+    logging.info(f"Verificando integridad de: {file_path} contra {metadata_path}")
     
     # 1. Leemos el hash oficial que guardamos previamente en el JSON
     try:
@@ -73,7 +113,7 @@ def verify_data_integrity(file_path: str, metadata_path: str) -> bool:
             official_metadata = json.load(json_file)
             expected_hash = official_metadata.get("sha256_checksum")
     except FileNotFoundError:
-        logging.error(f"Metadata file missing at {metadata_path}. Run create_metadata_file first.")
+        logging.error(f"Archivo de metadata no encontrado en {metadata_path}. Ejecuta create_metadata_file primero.")
         return False
 
     # 2. Calculamos el hash del archivo CSV actual en este exacto momento
@@ -81,12 +121,12 @@ def verify_data_integrity(file_path: str, metadata_path: str) -> bool:
     
     # 3. Comparamos ambos hashes para asegurar que nadie alteró el CSV
     if current_hash == expected_hash:
-        logging.info("SUCCESS: Data integrity verified. No corruption detected.")
+        logging.info("ÉXITO: Integridad de datos verificada. No se detectó corrupción.")
         return True
     else:
-        logging.critical("WARNING: Data corruption or manipulation detected!")
-        logging.critical(f"Expected Hash: {expected_hash}")
-        logging.critical(f"Current Hash:  {current_hash}")
+        logging.critical("ADVERTENCIA: ¡Se detectó corrupción o manipulación del dataset!")
+        logging.critical(f"Hash esperado: {expected_hash}")
+        logging.critical(f"Hash actual:   {current_hash}")
         return False
 
 if __name__ == "__main__":
@@ -99,9 +139,9 @@ if __name__ == "__main__":
     
     # Si es la primera vez y no hay JSON, lo creamos
     if not os.path.exists(metadata_path):
-        logging.info("No metadata found. Generating official metadata file...")
+        logging.info("No se encontró metadata. Generando archivo de metadata oficial...")
         create_metadata_file(dataset_path, metadata_path)
     
     # Verificamos que el dataset crudo coincida con el JSON
-    logging.info("--- Testing verification function ---")
+    logging.info("--- Probando función de verificación ---")
     verify_data_integrity(dataset_path, metadata_path)

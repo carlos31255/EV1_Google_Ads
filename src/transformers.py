@@ -1,6 +1,6 @@
 """
-Custom Scikit-Learn transformers for the Google Ads dataset.
-Includes text normalization, monetary cleaning, and leakage-free imputation.
+Transformers personalizados de Scikit-Learn para el dataset de Google Ads.
+Incluye normalización de texto, limpieza de valores monetarios e imputación sin fuga de datos.
 """
 
 import pandas as pd
@@ -8,7 +8,12 @@ import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
 
 class DateStandardizerTransformer(BaseEstimator, TransformerMixin):
-    """Standardizes date formats and extracts temporal features (month, DOW)."""
+    """
+    Estandariza formatos de fecha y extrae variables temporales (mes, día de semana, fin de semana).
+
+    Convierte la columna 'Ad_Date' a datetime, maneja múltiples formatos de entrada
+    y genera tres nuevas columnas: Ad_Month, Ad_DOW e Is_Weekend.
+    """
     def fit(self, X, y=None):
         return self
 
@@ -33,7 +38,12 @@ class DateStandardizerTransformer(BaseEstimator, TransformerMixin):
 
 
 class TextNormalizerTransformer(BaseEstimator, TransformerMixin):
-    """Normalizes text capitalization to group similar categorical strings."""
+    """
+    Normaliza la capitalización de columnas de texto para agrupar cadenas categóricas similares.
+
+    Aplica Title Case y strip a las columnas 'Campaign_Name', 'Location' y 'Device'
+    para evitar que variantes de capitalización generen categorías duplicadas en el OneHotEncoder.
+    """
     def fit(self, X, y=None):
         return self
 
@@ -53,7 +63,14 @@ class TextNormalizerTransformer(BaseEstimator, TransformerMixin):
 
 
 class MonetaryCleanerTransformer(BaseEstimator, TransformerMixin):
-    """Converts monetary strings (e.g., '$1,234.50') into clean float values."""
+    """
+    Convierte columnas monetarias almacenadas como strings (ej. '$1,234.50') a valores float.
+
+    Parameters
+    ----------
+    columns : list, optional
+        Lista de columnas a limpiar. Por defecto: ['Cost', 'Sale_Amount'].
+    """
     def __init__(self, columns=None):
         self.columns = columns if columns else ['Cost', 'Sale_Amount']
 
@@ -76,7 +93,14 @@ class MonetaryCleanerTransformer(BaseEstimator, TransformerMixin):
 
 
 class DropColumnsTransformer(BaseEstimator, TransformerMixin):
-    """Drops columns that cause data leakage or have no predictive value."""
+    """
+    Elimina columnas que causan fuga de datos (data leakage) o no tienen valor predictivo.
+
+    Parameters
+    ----------
+    columns_to_drop : list, optional
+        Lista de nombres de columnas a eliminar. Por defecto: lista vacía.
+    """
     def __init__(self, columns_to_drop=None):
         self.columns_to_drop = columns_to_drop if columns_to_drop else []
 
@@ -93,7 +117,14 @@ class DropColumnsTransformer(BaseEstimator, TransformerMixin):
 
 
 class DropHighMissingTransformer(BaseEstimator, TransformerMixin):
-    """Drops columns exceeding a defined threshold of missing values."""
+    """
+    Elimina columnas que superan un umbral definido de valores faltantes.
+
+    Parameters
+    ----------
+    threshold : float, optional
+        Proporción máxima de nulos permitida (0.0 a 1.0). Por defecto: 0.80.
+    """
     def __init__(self, threshold=0.80):
         self.threshold = threshold
         self.cols_to_drop_ = []
@@ -114,8 +145,17 @@ class DropHighMissingTransformer(BaseEstimator, TransformerMixin):
 
 class SmartImputerTransformer(BaseEstimator, TransformerMixin):
     """
-    Leakage-free adaptive imputer. 
-    Learns median/mode during fit() and safely applies them during transform().
+    Imputador adaptativo sin fuga de datos.
+
+    Aprende la mediana (variables numéricas) o la moda (variables categóricas)
+    exclusivamente durante fit() con datos de entrenamiento, y las aplica
+    de forma segura durante transform() sin contaminar el set de prueba.
+
+    Parameters
+    ----------
+    low_threshold : float, optional
+        Umbral inferior de proporción de nulos para clasificar columnas como
+        'imputación simple'. Por defecto: 0.10.
     """
     def __init__(self, low_threshold=0.10):
         self.low_threshold = low_threshold
@@ -141,7 +181,17 @@ class SmartImputerTransformer(BaseEstimator, TransformerMixin):
     
     
 class OutlierCapper(BaseEstimator, TransformerMixin):
-    """Caps outliers in numeric columns using the 1.5 * IQR rule."""
+    """
+    Recorta valores atípicos en columnas numéricas usando la regla 1.5 * IQR.
+
+    Durante fit() aprende los límites [Q1 - 1.5·IQR, Q3 + 1.5·IQR] por columna.
+    Durante transform() aplica clip() para sustituir valores extremos por esos límites.
+
+    Parameters
+    ----------
+    apply_capping : bool, optional
+        Si es False, el transformer pasa los datos sin modificar. Por defecto: True.
+    """
     def __init__(self, apply_capping=True):
         self.apply_capping = apply_capping
         self.bounds_ = {}
@@ -171,7 +221,13 @@ class OutlierCapper(BaseEstimator, TransformerMixin):
 
 
 class DropZeroVarianceTransformer(BaseEstimator, TransformerMixin):
-    """Drops numeric columns with zero variance."""
+    """
+    Elimina columnas numéricas con varianza cero (un único valor único).
+
+    Columnas con varianza cero no aportan información al modelo y pueden
+    causar errores en el StandardScaler. Se identifican durante fit()
+    y se eliminan durante transform().
+    """
     def __init__(self):
         self.zero_var_cols_ = []
 

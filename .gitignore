@@ -12,11 +12,26 @@ google_ads/
 # Sistema
 .DS_Store
 
-# Datos procesados
+# Datos generados automáticamente (no subir, se recrean con main.py)
+data/processed/*.csv
+data/processed/*.joblib
 data/processed/*.png
 
-# Visualizaciones generadas
-outputs/*.png
+# Modelos pesados y bases de datos locales
+# (El final_classifier.joblib y best_params.pkl sí se pueden subir si quieres que otros prueben tu modelo)
+models/trained_models/*.db
+models/optuna_study.db
+
+# Resultados gráficos y métricas generadas
+# Nota: Si esto es para tu portafolio, puedes comentar estas líneas si quieres que los gráficos se vean en GitHub
+# outputs/*.png
+# results/plots/*.png
+# results/metrics/*.csv
+
+# Carpetas de testing y temporales
+backup/
+run_notebooks.py
+fix_notebooks.py
 
 # Documentos locales (no se suben)
 docs/informe_graficos_presentacion.md

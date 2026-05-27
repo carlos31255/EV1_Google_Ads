@@ -1,6 +1,6 @@
 """
-Pipeline module for Google Ads Dataset.
-Orchestrates structural cleaning, missing value handling, and statistical scaling.
+Módulo de Pipeline para el dataset de Google Ads.
+Orquesta la limpieza estructural, el manejo de valores faltantes y el escalado estadístico.
 """
 
 from sklearn.pipeline import Pipeline
@@ -16,8 +16,19 @@ from src.transformers import (
 
 def build_preprocessing_pipeline(columns_to_drop=None):
     """
-    Builds the complete scikit-learn preprocessing pipeline.
-    Dynamically identifies numeric and categorical features.
+    Construye el pipeline completo de preprocesamiento de scikit-learn.
+    Identifica dinámicamente las columnas numéricas y categóricas sobrevivientes a la limpieza previa.
+
+    Parameters
+    ----------
+    columns_to_drop : list, optional
+        Columnas a eliminar del dataset antes del preprocesamiento.
+        Por defecto: ['Ad_ID', 'Ad_Date', 'Cost', 'Sale_Amount'].
+
+    Returns
+    -------
+    Pipeline
+        Pipeline maestro de scikit-learn listo para fit_transform().
     """
     if columns_to_drop is None:
         columns_to_drop = ['Ad_ID', 'Ad_Date', 'Cost', 'Sale_Amount']
