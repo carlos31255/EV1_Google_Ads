@@ -32,6 +32,7 @@ models/optuna_study.db
 backup/
 run_notebooks.py
 fix_notebooks.py
+update_titles.py
 
 # Documentos locales (no se suben)
 docs/informe_graficos_presentacion.md
