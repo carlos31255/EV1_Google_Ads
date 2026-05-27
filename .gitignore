@@ -33,6 +33,10 @@ backup/
 run_notebooks.py
 fix_notebooks.py
 update_titles.py
+add_explanations.py
+change_plot.py
+update_explanations_argued.py
+update_text_nocolor.py
 
 # Documentos locales (no se suben)
 docs/informe_graficos_presentacion.md
