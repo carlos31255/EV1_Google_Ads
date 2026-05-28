@@ -4,8 +4,7 @@
 ---
 
 **Proyecto:** Google Ads Analytics — Clasificación Binaria de Rentabilidad  
-**Dataset:** Google Ads Sales Dataset (Kaggle)  
-**Fecha:** Mayo 2026  
+**Dataset:** Google Ads Sales Dataset (Kaggle)   
 **Repositorio:** https://github.com/carlos31255/google_ads_analytics
 
 ---
